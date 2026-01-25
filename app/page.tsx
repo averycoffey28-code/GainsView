@@ -8,6 +8,7 @@ import PriceScenarioSlider from "@/components/PriceScenarioSlider";
 import ProfitLossChart from "@/components/ProfitLossChart";
 import StockSearch from "@/components/StockSearch";
 import OptionsChainSelector from "@/components/OptionsChainSelector";
+import TradingAssistant from "@/components/TradingAssistant";
 import { useMarketData } from "@/hooks/useMarketData";
 import { OptionContract } from "@/lib/types";
 import {
@@ -219,6 +220,21 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* AI Trading Assistant */}
+      <TradingAssistant
+        context={{
+          symbol: quote?.symbol,
+          contractType,
+          position,
+          strikePrice,
+          premium,
+          currentPrice,
+          contracts,
+          targetPrice,
+        }}
+        calculations={calculations}
+      />
     </div>
   );
 }
