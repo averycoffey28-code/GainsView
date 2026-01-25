@@ -2,7 +2,6 @@
 
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
 
 // Type definitions
 export interface User {
@@ -77,10 +76,10 @@ export interface UserSettings {
   updated_at: string;
 }
 
-// Hook to get the Supabase user ID from Clerk ID
-export function useSupabaseUser() {
+// Hook to get the database user from Clerk
+export function useDbUser() {
   const { user: clerkUser, isLoaded } = useUser();
-  const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
+  const [dbUser, setDbUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -90,20 +89,14 @@ export function useSupabaseUser() {
         return;
       }
 
-      const supabase = createClient();
-      if (!supabase) {
-        setLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("clerk_id", clerkUser.id)
-        .single();
-
-      if (!error && data) {
-        setSupabaseUser(data as User);
+      try {
+        const res = await fetch("/api/user?type=user");
+        if (res.ok) {
+          const { data } = await res.json();
+          setDbUser(data);
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
       }
       setLoading(false);
     }
@@ -111,84 +104,88 @@ export function useSupabaseUser() {
     fetchUser();
   }, [clerkUser, isLoaded]);
 
-  return { user: supabaseUser, loading, clerkUser };
+  return { user: dbUser, loading, clerkUser };
 }
 
 // Hook for positions
 export function usePositions() {
-  const { user } = useSupabaseUser();
+  const { clerkUser } = useDbUser();
   const [positions, setPositions] = useState<Position[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchPositions = useCallback(async () => {
-    if (!user) return;
-
-    const supabase = createClient();
-    if (!supabase) return;
+    if (!clerkUser) return;
 
     setLoading(true);
-    const { data, error } = await supabase
-      .from("positions")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (!error && data) {
-      setPositions(data as Position[]);
+    try {
+      const res = await fetch("/api/user?type=positions");
+      if (res.ok) {
+        const { data } = await res.json();
+        setPositions(data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching positions:", error);
     }
     setLoading(false);
-  }, [user]);
+  }, [clerkUser]);
 
   useEffect(() => {
     fetchPositions();
   }, [fetchPositions]);
 
-  const addPosition = async (position: Omit<Position, "id" | "user_id" | "created_at">) => {
-    if (!user) return null;
-
-    const supabase = createClient();
-    if (!supabase) return null;
-
-    const { data, error } = await supabase
-      .from("positions")
-      .insert({ ...position, user_id: user.id })
-      .select()
-      .single();
-
-    if (!error && data) {
-      setPositions((prev) => [data as Position, ...prev]);
-      return data;
+  const addPosition = async (position: Omit<Position, "id" | "user_id" | "created_at" | "status" | "closed_at" | "close_price" | "realized_pnl">) => {
+    try {
+      const res = await fetch("/api/user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "position", data: position }),
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        if (data) {
+          setPositions((prev) => [data, ...prev]);
+          return data;
+        }
+      }
+    } catch (error) {
+      console.error("Error adding position:", error);
     }
     return null;
   };
 
   const updatePosition = async (id: string, updates: Partial<Position>) => {
-    const supabase = createClient();
-    if (!supabase) return false;
-
-    const { error } = await supabase
-      .from("positions")
-      .update(updates)
-      .eq("id", id);
-
-    if (!error) {
-      setPositions((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
-      );
-      return true;
+    try {
+      const res = await fetch("/api/user", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "position", id, data: updates }),
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        if (data) {
+          setPositions((prev) =>
+            prev.map((p) => (p.id === id ? data : p))
+          );
+          return true;
+        }
+      }
+    } catch (error) {
+      console.error("Error updating position:", error);
     }
     return false;
   };
 
   const deletePosition = async (id: string) => {
-    const supabase = createClient();
-    if (!supabase) return false;
-
-    const { error } = await supabase.from("positions").delete().eq("id", id);
-
-    if (!error) {
-      setPositions((prev) => prev.filter((p) => p.id !== id));
-      return true;
+    try {
+      const res = await fetch(`/api/user?type=position&id=${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setPositions((prev) => prev.filter((p) => p.id !== id));
+        return true;
+      }
+    } catch (error) {
+      console.error("Error deleting position:", error);
     }
     return false;
   };
@@ -198,61 +195,61 @@ export function usePositions() {
 
 // Hook for watchlist
 export function useWatchlist() {
-  const { user } = useSupabaseUser();
+  const { clerkUser } = useDbUser();
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchWatchlist = useCallback(async () => {
-    if (!user) return;
-
-    const supabase = createClient();
-    if (!supabase) return;
+    if (!clerkUser) return;
 
     setLoading(true);
-    const { data, error } = await supabase
-      .from("watchlist")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (!error && data) {
-      setWatchlist(data as WatchlistItem[]);
+    try {
+      const res = await fetch("/api/user?type=watchlist");
+      if (res.ok) {
+        const { data } = await res.json();
+        setWatchlist(data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching watchlist:", error);
     }
     setLoading(false);
-  }, [user]);
+  }, [clerkUser]);
 
   useEffect(() => {
     fetchWatchlist();
   }, [fetchWatchlist]);
 
   const addToWatchlist = async (symbol: string, notes?: string) => {
-    if (!user) return null;
-
-    const supabase = createClient();
-    if (!supabase) return null;
-
-    const { data, error } = await supabase
-      .from("watchlist")
-      .insert({ user_id: user.id, symbol: symbol.toUpperCase(), notes })
-      .select()
-      .single();
-
-    if (!error && data) {
-      setWatchlist((prev) => [data as WatchlistItem, ...prev]);
-      return data;
+    try {
+      const res = await fetch("/api/user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "watchlist", data: { symbol, notes } }),
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        if (data) {
+          setWatchlist((prev) => [data, ...prev]);
+          return data;
+        }
+      }
+    } catch (error) {
+      console.error("Error adding to watchlist:", error);
     }
     return null;
   };
 
   const removeFromWatchlist = async (id: string) => {
-    const supabase = createClient();
-    if (!supabase) return false;
-
-    const { error } = await supabase.from("watchlist").delete().eq("id", id);
-
-    if (!error) {
-      setWatchlist((prev) => prev.filter((w) => w.id !== id));
-      return true;
+    try {
+      const res = await fetch(`/api/user?type=watchlist&id=${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setWatchlist((prev) => prev.filter((w) => w.id !== id));
+        return true;
+      }
+    } catch (error) {
+      console.error("Error removing from watchlist:", error);
     }
     return false;
   };
@@ -262,66 +259,65 @@ export function useWatchlist() {
 
 // Hook for trades (P&L tracking)
 export function useTrades() {
-  const { user } = useSupabaseUser();
+  const { clerkUser } = useDbUser();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchTrades = useCallback(async () => {
-    if (!user) return;
-
-    const supabase = createClient();
-    if (!supabase) return;
+    if (!clerkUser) return;
 
     setLoading(true);
-    const { data, error } = await supabase
-      .from("trades")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("trade_date", { ascending: false });
-
-    if (!error && data) {
-      setTrades(data as Trade[]);
+    try {
+      const res = await fetch("/api/user?type=trades");
+      if (res.ok) {
+        const { data } = await res.json();
+        setTrades(data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching trades:", error);
     }
     setLoading(false);
-  }, [user]);
+  }, [clerkUser]);
 
   useEffect(() => {
     fetchTrades();
   }, [fetchTrades]);
 
   const addTrade = async (trade: Omit<Trade, "id" | "user_id" | "created_at">) => {
-    if (!user) return null;
-
-    const supabase = createClient();
-    if (!supabase) return null;
-
-    const { data, error } = await supabase
-      .from("trades")
-      .insert({ ...trade, user_id: user.id })
-      .select()
-      .single();
-
-    if (!error && data) {
-      setTrades((prev) => [data as Trade, ...prev]);
-      return data;
+    try {
+      const res = await fetch("/api/user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "trade", data: trade }),
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        if (data) {
+          setTrades((prev) => [data, ...prev]);
+          return data;
+        }
+      }
+    } catch (error) {
+      console.error("Error adding trade:", error);
     }
     return null;
   };
 
   const deleteTrade = async (id: string) => {
-    const supabase = createClient();
-    if (!supabase) return false;
-
-    const { error } = await supabase.from("trades").delete().eq("id", id);
-
-    if (!error) {
-      setTrades((prev) => prev.filter((t) => t.id !== id));
-      return true;
+    try {
+      const res = await fetch(`/api/user?type=trade&id=${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setTrades((prev) => prev.filter((t) => t.id !== id));
+        return true;
+      }
+    } catch (error) {
+      console.error("Error deleting trade:", error);
     }
     return false;
   };
 
-  // Calculate total P&L
   const totalPnL = trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
 
   return { trades, loading, addTrade, deleteTrade, totalPnL, refetch: fetchTrades };
@@ -329,67 +325,61 @@ export function useTrades() {
 
 // Hook for chat history
 export function useChatHistory() {
-  const { user } = useSupabaseUser();
+  const { clerkUser } = useDbUser();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchMessages = useCallback(async () => {
-    if (!user) return;
-
-    const supabase = createClient();
-    if (!supabase) return;
+    if (!clerkUser) return;
 
     setLoading(true);
-    const { data, error } = await supabase
-      .from("chat_history")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: true })
-      .limit(100); // Keep last 100 messages
-
-    if (!error && data) {
-      setMessages(data as ChatMessage[]);
+    try {
+      const res = await fetch("/api/user?type=chat");
+      if (res.ok) {
+        const { data } = await res.json();
+        setMessages(data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching chat:", error);
     }
     setLoading(false);
-  }, [user]);
+  }, [clerkUser]);
 
   useEffect(() => {
     fetchMessages();
   }, [fetchMessages]);
 
   const addMessage = async (role: "user" | "assistant", content: string) => {
-    if (!user) return null;
-
-    const supabase = createClient();
-    if (!supabase) return null;
-
-    const { data, error } = await supabase
-      .from("chat_history")
-      .insert({ user_id: user.id, role, content })
-      .select()
-      .single();
-
-    if (!error && data) {
-      setMessages((prev) => [...prev, data as ChatMessage]);
-      return data;
+    try {
+      const res = await fetch("/api/user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "chat", data: { role, content } }),
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        if (data) {
+          setMessages((prev) => [...prev, data]);
+          return data;
+        }
+      }
+    } catch (error) {
+      console.error("Error adding message:", error);
     }
     return null;
   };
 
   const clearHistory = async () => {
-    if (!user) return false;
-
-    const supabase = createClient();
-    if (!supabase) return false;
-
-    const { error } = await supabase
-      .from("chat_history")
-      .delete()
-      .eq("user_id", user.id);
-
-    if (!error) {
-      setMessages([]);
-      return true;
+    try {
+      const res = await fetch(`/api/user?type=chat`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setMessages([]);
+        return true;
+      }
+    } catch (error) {
+      console.error("Error clearing chat:", error);
     }
     return false;
   };
@@ -399,47 +389,46 @@ export function useChatHistory() {
 
 // Hook for user settings
 export function useUserSettings() {
-  const { user } = useSupabaseUser();
+  const { clerkUser } = useDbUser();
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchSettings() {
-      if (!user) return;
-
-      const supabase = createClient();
-      if (!supabase) return;
+      if (!clerkUser) return;
 
       setLoading(true);
-      const { data, error } = await supabase
-        .from("user_settings")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-
-      if (!error && data) {
-        setSettings(data as UserSettings);
+      try {
+        const res = await fetch("/api/user?type=settings");
+        if (res.ok) {
+          const { data } = await res.json();
+          setSettings(data);
+        }
+      } catch (error) {
+        console.error("Error fetching settings:", error);
       }
       setLoading(false);
     }
 
     fetchSettings();
-  }, [user]);
+  }, [clerkUser]);
 
   const updateSettings = async (updates: Partial<UserSettings>) => {
-    if (!user || !settings) return false;
-
-    const supabase = createClient();
-    if (!supabase) return false;
-
-    const { error } = await supabase
-      .from("user_settings")
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq("user_id", user.id);
-
-    if (!error) {
-      setSettings((prev) => (prev ? { ...prev, ...updates } : null));
-      return true;
+    try {
+      const res = await fetch("/api/user", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "settings", data: updates }),
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        if (data) {
+          setSettings(data);
+          return true;
+        }
+      }
+    } catch (error) {
+      console.error("Error updating settings:", error);
     }
     return false;
   };

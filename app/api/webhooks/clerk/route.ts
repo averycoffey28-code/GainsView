@@ -1,15 +1,20 @@
 import { Webhook } from "svix";
 import { headers } from "next/headers";
 import { WebhookEvent } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+import { neon } from "@neondatabase/serverless";
 
 export async function POST(req: Request) {
-  // Get the webhook secret from environment
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
+  const DATABASE_URL = process.env.DATABASE_URL;
 
   if (!WEBHOOK_SECRET) {
     console.error("Missing CLERK_WEBHOOK_SECRET");
     return new Response("Missing webhook secret", { status: 500 });
+  }
+
+  if (!DATABASE_URL) {
+    console.error("Missing DATABASE_URL");
+    return new Response("Database not configured", { status: 500 });
   }
 
   // Get the headers
@@ -41,79 +46,64 @@ export async function POST(req: Request) {
     return new Response("Webhook verification failed", { status: 400 });
   }
 
-  // Get Supabase admin client
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    console.error("Supabase not configured");
-    return new Response("Database not configured", { status: 500 });
-  }
-
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
-
-  // Handle the webhook event
+  const sql = neon(DATABASE_URL);
   const eventType = evt.type;
 
-  if (eventType === "user.created" || eventType === "user.updated") {
-    const { id, email_addresses, first_name, last_name, image_url } = evt.data;
-
-    const email = email_addresses?.[0]?.email_address;
-    const name = [first_name, last_name].filter(Boolean).join(" ") || null;
-
-    if (!email) {
-      return new Response("No email found", { status: 400 });
-    }
-
-    // Upsert user in Supabase
-    const { error } = await supabase.from("users").upsert(
-      {
-        clerk_id: id,
-        email: email,
-        name: name,
-        avatar_url: image_url || null,
-        updated_at: new Date().toISOString(),
-      },
-      {
-        onConflict: "clerk_id",
-      }
-    );
-
-    if (error) {
-      console.error("Error upserting user:", error);
-      return new Response("Database error", { status: 500 });
-    }
-
-    // Create default settings for new users
+  try {
     if (eventType === "user.created") {
-      const { data: userData } = await supabase
-        .from("users")
-        .select("id")
-        .eq("clerk_id", id)
-        .single();
+      const { id, email_addresses, first_name, last_name, image_url } = evt.data;
+      const email = email_addresses?.[0]?.email_address;
+      const name = [first_name, last_name].filter(Boolean).join(" ") || null;
 
-      if (userData) {
-        await supabase.from("user_settings").insert({
-          user_id: userData.id,
-          theme: "dark",
-          default_contracts: 1,
-          notifications_enabled: true,
-        });
+      if (!email) {
+        return new Response("No email found", { status: 400 });
+      }
+
+      // Insert new user
+      await sql`
+        INSERT INTO users (clerk_id, email, name, avatar_url)
+        VALUES (${id}, ${email}, ${name}, ${image_url || null})
+        ON CONFLICT (clerk_id) DO UPDATE SET
+          email = ${email},
+          name = ${name},
+          avatar_url = ${image_url || null},
+          updated_at = NOW()
+      `;
+
+      // Create default settings
+      const user = await sql`SELECT id FROM users WHERE clerk_id = ${id}`;
+      if (user[0]) {
+        await sql`
+          INSERT INTO user_settings (user_id)
+          VALUES (${user[0].id})
+          ON CONFLICT (user_id) DO NOTHING
+        `;
       }
     }
-  }
 
-  if (eventType === "user.deleted") {
-    const { id } = evt.data;
+    if (eventType === "user.updated") {
+      const { id, email_addresses, first_name, last_name, image_url } = evt.data;
+      const email = email_addresses?.[0]?.email_address;
+      const name = [first_name, last_name].filter(Boolean).join(" ") || null;
 
-    // Delete user from Supabase (cascade will handle related data)
-    const { error } = await supabase.from("users").delete().eq("clerk_id", id);
-
-    if (error) {
-      console.error("Error deleting user:", error);
-      return new Response("Database error", { status: 500 });
+      await sql`
+        UPDATE users SET
+          email = ${email},
+          name = ${name},
+          avatar_url = ${image_url || null},
+          updated_at = NOW()
+        WHERE clerk_id = ${id}
+      `;
     }
-  }
 
-  return new Response("Webhook processed", { status: 200 });
+    if (eventType === "user.deleted") {
+      const { id } = evt.data;
+      await sql`DELETE FROM users WHERE clerk_id = ${id}`;
+    }
+
+    return new Response("Webhook processed", { status: 200 });
+  } catch (error) {
+    console.error("Database error:", error);
+    return new Response("Database error", { status: 500 });
+  }
 }
