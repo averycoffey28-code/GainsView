@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Options P&L Calculator - A Next.js app for visualizing options trading profit/loss scenarios with live market data integration.
+GainsView - A premium Next.js options trading platform with P&L visualization, live market data, and AI assistant.
 
 **Live Site:** https://options-calculator-one.vercel.app
-**GitHub:** https://github.com/averycoffey28-code/options-calculator
+**GitHub:** https://github.com/averycoffey28-code/GainsView
 
 ## Commands
 
@@ -26,7 +26,7 @@ vercel --prod    # Deploy to production
 - shadcn/ui components (in `components/ui/`)
 - Recharts for P&L visualization
 - Tradier API for live market data
-- Supabase Auth (Google, Apple, Email/Password, Magic Link)
+- Clerk Auth (Google, Apple, Email)
 - Groq AI (Llama 3.1 70B)
 
 ### Key Files
@@ -40,6 +40,7 @@ vercel --prod    # Deploy to production
 - `app/api/stock/route.ts` - Fetches stock quotes from Tradier
 - `app/api/options/route.ts` - Fetches options expirations and chains from Tradier
 - `app/api/chat/route.ts` - AI Trading Assistant powered by Groq (Llama 3.1 70B)
+- `app/api/admin/users/route.ts` - Admin API for user management (Clerk)
 
 **Main Components:**
 - `app/page.tsx` - Main calculator page, manages all state
@@ -48,6 +49,7 @@ vercel --prod    # Deploy to production
 - `components/StockSearch.tsx` - Symbol search with live quote display
 - `components/OptionsChainSelector.tsx` - Expiration picker and contract table
 - `components/TradingAssistant.tsx` - AI chat assistant (floating button, slide-out panel)
+- `components/BottomNav.tsx` - Mobile bottom navigation bar
 
 ### Brand Colors (from lion logo)
 
@@ -72,20 +74,25 @@ TRADIER_API_URL=https://sandbox.tradier.com/v1
 # AI Trading Assistant (Groq)
 GROQ_API_KEY=your_groq_api_key_here
 
-# Supabase Auth
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+# Clerk Auth
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
+CLERK_SECRET_KEY=sk_...
 ```
 
 - Get free Tradier sandbox token at https://developer.tradier.com/
 - Get free Groq API key at https://console.groq.com/
-- Create Supabase project at https://supabase.com/dashboard
+- Create Clerk app at https://dashboard.clerk.com/
 
 ### Auth Routes
-- `/login` - Sign in page (Google, Apple, Email, Magic Link)
-- `/signup` - Sign up with required checkboxes (Terms, Risk, Age 18+)
-- `/forgot-password` - Password reset request
-- `/reset-password` - Set new password
-- `/auth/callback` - OAuth callback handler
+- `/sign-in` - Clerk sign in page (Google, Apple, Email)
+- `/sign-up` - Clerk sign up page
+- `/login` - Redirects to /sign-in
+- `/signup` - Redirects to /sign-up
 - `/admin/users` - Admin dashboard (gainsview@gmail.com only)
+
+### App Pages
+- `/` - Main options calculator
+- `/portfolio` - Portfolio tracking
+- `/pnl` - P&L tracking
+- `/ai` - Full-screen AI assistant
+- `/menu` - Settings menu

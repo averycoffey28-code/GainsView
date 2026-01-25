@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useUser } from "@clerk/nextjs";
 import {
   Users,
   Search,
@@ -10,53 +10,51 @@ import {
   Mail,
   Calendar,
   Shield,
-  MoreVertical,
-  Key,
-  StickyNote,
-  X,
-  Save,
   Loader2,
   Crown,
+  ExternalLink,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
-interface UserProfile {
+interface ClerkUser {
   id: string;
-  email: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  auth_provider: string;
-  created_at: string;
-  last_login: string | null;
-  subscription_status: string | null;
-  admin_notes: string | null;
+  emailAddresses: { emailAddress: string }[];
+  firstName: string | null;
+  lastName: string | null;
+  imageUrl: string;
+  createdAt: number;
+  lastSignInAt: number | null;
+  externalAccounts: { provider: string }[];
 }
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([]);
+  const { user: currentUser } = useUser();
+  const [users, setUsers] = useState<ClerkUser[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<ClerkUser[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
-  const [notes, setNotes] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-
-  const supabase = createClient();
+  const [error, setError] = useState<string | null>(null);
 
   const fetchUsers = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("created_at", { ascending: false });
+    setError(null);
 
-    if (!error && data) {
-      setUsers(data);
-      setFilteredUsers(data);
+    try {
+      const response = await fetch("/api/admin/users");
+      if (!response.ok) {
+        throw new Error("Failed to fetch users");
+      }
+      const data = await response.json();
+      setUsers(data.users || []);
+      setFilteredUsers(data.users || []);
+    } catch (err) {
+      setError("Failed to load users. Make sure you have admin access.");
+      console.error(err);
     }
+
     setIsLoading(false);
   };
 
@@ -66,11 +64,14 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     if (searchQuery) {
-      const filtered = users.filter(
-        (user) =>
-          user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          user.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      const filtered = users.filter((user) => {
+        const email = user.emailAddresses[0]?.emailAddress || "";
+        const name = `${user.firstName || ""} ${user.lastName || ""}`.trim();
+        return (
+          email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      });
       setFilteredUsers(filtered);
     } else {
       setFilteredUsers(users);
@@ -78,18 +79,16 @@ export default function AdminUsersPage() {
   }, [searchQuery, users]);
 
   const exportToCSV = () => {
-    const headers = ["Email", "Name", "Auth Provider", "Created At", "Last Login", "Subscription", "Notes"];
+    const headers = ["Email", "Name", "Provider", "Created At", "Last Sign In"];
     const csvContent = [
       headers.join(","),
       ...filteredUsers.map((user) =>
         [
-          user.email,
-          user.full_name || "",
-          user.auth_provider,
-          user.created_at,
-          user.last_login || "",
-          user.subscription_status || "free",
-          (user.admin_notes || "").replace(/,/g, ";"),
+          user.emailAddresses[0]?.emailAddress || "",
+          `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+          user.externalAccounts[0]?.provider || "email",
+          new Date(user.createdAt).toISOString(),
+          user.lastSignInAt ? new Date(user.lastSignInAt).toISOString() : "",
         ].join(",")
       ),
     ].join("\n");
@@ -102,35 +101,8 @@ export default function AdminUsersPage() {
     a.click();
   };
 
-  const sendPasswordReset = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-
-    if (error) {
-      alert("Error sending reset email: " + error.message);
-    } else {
-      alert("Password reset email sent to " + email);
-    }
-  };
-
-  const saveNotes = async () => {
-    if (!selectedUser) return;
-
-    setIsSaving(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ admin_notes: notes })
-      .eq("id", selectedUser.id);
-
-    if (!error) {
-      setUsers(users.map((u) => (u.id === selectedUser.id ? { ...u, admin_notes: notes } : u)));
-      setSelectedUser(null);
-    }
-    setIsSaving(false);
-  };
-
-  const getProviderBadge = (provider: string) => {
+  const getProviderBadge = (user: ClerkUser) => {
+    const provider = user.externalAccounts[0]?.provider;
     switch (provider) {
       case "google":
         return <Badge className="bg-blue-500/20 text-blue-400 border-0">Google</Badge>;
@@ -141,18 +113,16 @@ export default function AdminUsersPage() {
     }
   };
 
-  const getSubscriptionBadge = (status: string | null) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-emerald-500/20 text-emerald-400 border-0">Active</Badge>;
-      case "trial":
-        return <Badge className="bg-gold-500/20 text-gold-400 border-0">Trial</Badge>;
-      case "canceled":
-        return <Badge className="bg-rose-500/20 text-rose-400 border-0">Canceled</Badge>;
-      default:
-        return <Badge className="bg-brown-600/50 text-brown-400 border-0">Free</Badge>;
-    }
-  };
+  const thisWeekUsers = users.filter((u) => {
+    const created = new Date(u.createdAt);
+    const now = new Date();
+    const diff = now.getTime() - created.getTime();
+    return diff < 7 * 24 * 60 * 60 * 1000;
+  }).length;
+
+  const googleUsers = users.filter(
+    (u) => u.externalAccounts[0]?.provider === "google"
+  ).length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-brown-950 via-brown-900 to-brown-950 text-brown-50 p-4 md:p-8 pb-24">
@@ -184,6 +154,26 @@ export default function AdminUsersPage() {
           </div>
         </div>
 
+        {/* Clerk Dashboard Link */}
+        <Card className="bg-gold-500/10 border-gold-500/30">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-brown-100 font-medium">Full User Management</p>
+              <p className="text-sm text-brown-400">
+                Use Clerk Dashboard for advanced user management, banning, and more.
+              </p>
+            </div>
+            <Button
+              onClick={() => window.open("https://dashboard.clerk.com", "_blank")}
+              variant="outline"
+              className="border-gold-500/50 text-gold-400 hover:bg-gold-500/20"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Open Clerk
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="bg-brown-800/50 border-brown-700">
@@ -202,10 +192,8 @@ export default function AdminUsersPage() {
               <div className="flex items-center gap-3">
                 <Crown className="w-8 h-8 text-emerald-400" />
                 <div>
-                  <p className="text-2xl font-bold text-brown-50">
-                    {users.filter((u) => u.subscription_status === "active").length}
-                  </p>
-                  <p className="text-xs text-brown-400">Active Subs</p>
+                  <p className="text-2xl font-bold text-brown-50">0</p>
+                  <p className="text-xs text-brown-400">Premium</p>
                 </div>
               </div>
             </CardContent>
@@ -215,14 +203,7 @@ export default function AdminUsersPage() {
               <div className="flex items-center gap-3">
                 <Calendar className="w-8 h-8 text-blue-400" />
                 <div>
-                  <p className="text-2xl font-bold text-brown-50">
-                    {users.filter((u) => {
-                      const created = new Date(u.created_at);
-                      const now = new Date();
-                      const diff = now.getTime() - created.getTime();
-                      return diff < 7 * 24 * 60 * 60 * 1000;
-                    }).length}
-                  </p>
+                  <p className="text-2xl font-bold text-brown-50">{thisWeekUsers}</p>
                   <p className="text-xs text-brown-400">This Week</p>
                 </div>
               </div>
@@ -233,9 +214,7 @@ export default function AdminUsersPage() {
               <div className="flex items-center gap-3">
                 <Mail className="w-8 h-8 text-rose-400" />
                 <div>
-                  <p className="text-2xl font-bold text-brown-50">
-                    {users.filter((u) => u.auth_provider === "google").length}
-                  </p>
+                  <p className="text-2xl font-bold text-brown-50">{googleUsers}</p>
                   <p className="text-xs text-brown-400">Google Auth</p>
                 </div>
               </div>
@@ -253,6 +232,15 @@ export default function AdminUsersPage() {
             className="pl-10 bg-brown-800/50 border-brown-700 text-brown-100 py-6"
           />
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <Card className="bg-rose-500/10 border-rose-500/30">
+            <CardContent className="p-4">
+              <p className="text-rose-400">{error}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Users Table */}
         <Card className="bg-brown-800/50 border-brown-700 overflow-hidden">
@@ -286,13 +274,7 @@ export default function AdminUsersPage() {
                         Joined
                       </th>
                       <th className="text-left p-4 text-xs text-brown-400 font-medium uppercase">
-                        Last Login
-                      </th>
-                      <th className="text-left p-4 text-xs text-brown-400 font-medium uppercase">
-                        Status
-                      </th>
-                      <th className="text-right p-4 text-xs text-brown-400 font-medium uppercase">
-                        Actions
+                        Last Sign In
                       </th>
                     </tr>
                   </thead>
@@ -304,61 +286,39 @@ export default function AdminUsersPage() {
                       >
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            {user.avatar_url ? (
+                            {user.imageUrl ? (
                               <img
-                                src={user.avatar_url}
+                                src={user.imageUrl}
                                 alt=""
                                 className="w-10 h-10 rounded-full object-cover"
                               />
                             ) : (
                               <div className="w-10 h-10 rounded-full bg-brown-700 flex items-center justify-center">
                                 <span className="text-brown-300 font-medium">
-                                  {user.email?.[0]?.toUpperCase() || "?"}
+                                  {user.emailAddresses[0]?.emailAddress?.[0]?.toUpperCase() || "?"}
                                 </span>
                               </div>
                             )}
                             <div>
                               <p className="font-medium text-brown-100">
-                                {user.full_name || "No name"}
+                                {user.firstName || user.lastName
+                                  ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
+                                  : "No name"}
                               </p>
-                              <p className="text-sm text-brown-400">{user.email}</p>
+                              <p className="text-sm text-brown-400">
+                                {user.emailAddresses[0]?.emailAddress}
+                              </p>
                             </div>
                           </div>
                         </td>
-                        <td className="p-4">{getProviderBadge(user.auth_provider)}</td>
+                        <td className="p-4">{getProviderBadge(user)}</td>
                         <td className="p-4 text-sm text-brown-300">
-                          {new Date(user.created_at).toLocaleDateString()}
+                          {new Date(user.createdAt).toLocaleDateString()}
                         </td>
                         <td className="p-4 text-sm text-brown-300">
-                          {user.last_login
-                            ? new Date(user.last_login).toLocaleDateString()
+                          {user.lastSignInAt
+                            ? new Date(user.lastSignInAt).toLocaleDateString()
                             : "Never"}
-                        </td>
-                        <td className="p-4">{getSubscriptionBadge(user.subscription_status)}</td>
-                        <td className="p-4">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => sendPasswordReset(user.email)}
-                              className="text-brown-400 hover:text-brown-200 h-8 w-8"
-                              title="Send password reset"
-                            >
-                              <Key className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setNotes(user.admin_notes || "");
-                              }}
-                              className="text-brown-400 hover:text-brown-200 h-8 w-8"
-                              title="Add notes"
-                            >
-                              <StickyNote className="w-4 h-4" />
-                            </Button>
-                          </div>
                         </td>
                       </tr>
                     ))}
@@ -368,54 +328,6 @@ export default function AdminUsersPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Notes Modal */}
-        {selectedUser && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <Card className="w-full max-w-md bg-brown-900 border-brown-700">
-              <CardHeader className="flex flex-row items-center justify-between border-b border-brown-700">
-                <CardTitle className="text-brown-100">Admin Notes</CardTitle>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setSelectedUser(null)}
-                  className="text-brown-400 hover:text-brown-200"
-                >
-                  <X className="w-5 h-5" />
-                </Button>
-              </CardHeader>
-              <CardContent className="p-4 space-y-4">
-                <div>
-                  <p className="text-sm text-brown-400 mb-1">User</p>
-                  <p className="text-brown-100">{selectedUser.email}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-brown-400 mb-2">Notes</p>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Add notes about this user (support tickets, issues, etc.)"
-                    className="w-full h-32 p-3 bg-brown-800 border border-brown-700 rounded-lg text-brown-100 placeholder:text-brown-500 resize-none"
-                  />
-                </div>
-                <Button
-                  onClick={saveNotes}
-                  disabled={isSaving}
-                  className="w-full bg-gold-500 hover:bg-gold-600 text-brown-900"
-                >
-                  {isSaving ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      Save Notes
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        )}
       </div>
     </div>
   );
