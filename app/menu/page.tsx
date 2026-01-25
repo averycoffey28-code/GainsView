@@ -1,5 +1,7 @@
 "use client";
 
+import { useUser, useClerk } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import {
   User,
   CreditCard,
@@ -11,9 +13,10 @@ import {
   Moon,
   Smartphone,
   Key,
-  FileText
+  FileText,
+  Loader2
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 interface MenuItem {
@@ -23,6 +26,7 @@ interface MenuItem {
   href?: string;
   badge?: string;
   badgeColor?: string;
+  onClick?: () => void;
 }
 
 const accountItems: MenuItem[] = [
@@ -94,6 +98,7 @@ function MenuSection({ title, items }: { title: string; items: MenuItem[] }) {
             return (
               <button
                 key={item.label}
+                onClick={item.onClick}
                 className="w-full flex items-center justify-between p-4 hover:bg-brown-700/30 transition-colors"
               >
                 <div className="flex items-center gap-3">
@@ -128,16 +133,45 @@ function MenuSection({ title, items }: { title: string; items: MenuItem[] }) {
 }
 
 export default function MenuPage() {
+  const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/sign-in");
+  };
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-brown-950 via-brown-900 to-brown-950 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-gold-400 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-brown-950 via-brown-900 to-brown-950 text-brown-50 p-4 pb-24">
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* Header */}
+        {/* Header - User Profile */}
         <div className="text-center py-6">
-          <div className="w-20 h-20 bg-gold-400/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <User className="w-10 h-10 text-gold-400" />
-          </div>
-          <h1 className="text-xl font-bold text-brown-50">Guest User</h1>
-          <p className="text-sm text-brown-400">Sign in to sync your data</p>
+          {user?.imageUrl ? (
+            <img
+              src={user.imageUrl}
+              alt={user.fullName || "User"}
+              className="w-20 h-20 rounded-full mx-auto mb-4 border-2 border-gold-400/30"
+            />
+          ) : (
+            <div className="w-20 h-20 bg-gold-400/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <User className="w-10 h-10 text-gold-400" />
+            </div>
+          )}
+          <h1 className="text-xl font-bold text-brown-50">
+            {user?.fullName || user?.firstName || "User"}
+          </h1>
+          <p className="text-sm text-brown-400">
+            {user?.primaryEmailAddress?.emailAddress}
+          </p>
         </div>
 
         {/* Account Section */}
@@ -152,7 +186,10 @@ export default function MenuPage() {
         {/* Sign Out */}
         <Card className="bg-brown-800/50 border-brown-700">
           <CardContent className="p-0">
-            <button className="w-full flex items-center justify-center gap-2 p-4 text-rose-400 hover:bg-rose-500/10 transition-colors">
+            <button
+              onClick={handleSignOut}
+              className="w-full flex items-center justify-center gap-2 p-4 text-rose-400 hover:bg-rose-500/10 transition-colors"
+            >
               <LogOut className="w-5 h-5" />
               <span className="font-medium">Sign Out</span>
             </button>
@@ -161,18 +198,9 @@ export default function MenuPage() {
 
         {/* App Info */}
         <div className="text-center text-xs text-brown-600 py-4">
-          <p>Options P&L Calculator</p>
+          <p>GainsView</p>
           <p>Version 1.0.0</p>
         </div>
-
-        {/* Coming Soon Notice */}
-        <Card className="bg-gold-400/10 border-gold-400/20">
-          <CardContent className="p-4">
-            <p className="text-sm text-gold-400 text-center">
-              Full account features coming soon with authentication
-            </p>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

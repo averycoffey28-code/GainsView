@@ -26,42 +26,61 @@ vercel --prod    # Deploy to production
 - shadcn/ui components (in `components/ui/`)
 - Recharts for P&L visualization
 - Tradier API for live market data
-- Clerk Auth (Google, Apple, Email)
+- Clerk Auth (Google, Apple, Email) - handles sessions/auth
+- Supabase (PostgreSQL) - user data storage
 - Groq AI (Llama 3.1 70B)
+
+### Authentication Flow
+1. User visits any page → Middleware checks auth
+2. If not logged in → Redirect to /sign-in
+3. User signs in via Clerk → Redirect to home
+4. Clerk webhook syncs user to Supabase database
+5. All user data linked via Supabase user_id
 
 ### Key Files
 
 **Core Logic:**
-- `lib/calculations.ts` - Options math (P&L, break-even, max profit/loss). Uses 100x contract multiplier.
-- `lib/types.ts` - TypeScript interfaces for market data (StockQuote, OptionContract, OptionsChain)
-- `hooks/useMarketData.ts` - State management for fetching quotes and options chains
+- `lib/calculations.ts` - Options math (P&L, break-even, max profit/loss)
+- `lib/types.ts` - TypeScript interfaces for market data
+- `hooks/useMarketData.ts` - State management for fetching quotes
+- `hooks/useUserData.ts` - Hooks for user data (positions, trades, watchlist, chat)
+
+**Auth & Database:**
+- `middleware.ts` - Clerk auth middleware, protects all routes
+- `lib/supabase/client.ts` - Supabase client for database operations
+- `lib/supabase/types.ts` - Database type definitions
+- `app/api/webhooks/clerk/route.ts` - Syncs Clerk users to Supabase
 
 **API Routes:**
 - `app/api/stock/route.ts` - Fetches stock quotes from Tradier
-- `app/api/options/route.ts` - Fetches options expirations and chains from Tradier
-- `app/api/chat/route.ts` - AI Trading Assistant powered by Groq (Llama 3.1 70B)
-- `app/api/admin/users/route.ts` - Admin API for user management (Clerk)
+- `app/api/options/route.ts` - Fetches options chains from Tradier
+- `app/api/chat/route.ts` - AI Trading Assistant (Groq)
+- `app/api/admin/users/route.ts` - Admin user management
 
 **Main Components:**
-- `app/page.tsx` - Main calculator page, manages all state
-- `components/ContractInputForm.tsx` - Call/Put, Long/Short, strike, premium inputs
-- `components/ProfitLossChart.tsx` - Recharts area chart with gradient fill
-- `components/StockSearch.tsx` - Symbol search with live quote display
-- `components/OptionsChainSelector.tsx` - Expiration picker and contract table
-- `components/TradingAssistant.tsx` - AI chat assistant (floating button, slide-out panel)
-- `components/BottomNav.tsx` - Mobile bottom navigation bar
+- `app/page.tsx` - Main calculator page
+- `components/BottomNav.tsx` - Mobile bottom navigation
+- `components/TradingAssistant.tsx` - AI chat assistant
+
+### Database Schema (Supabase)
+
+Tables:
+- `users` - User profiles (synced from Clerk)
+- `positions` - Saved option contracts
+- `watchlist` - Stocks being tracked
+- `trades` - Manual P&L entries
+- `chat_history` - AI conversation history
+- `user_settings` - User preferences
+
+Run `supabase-schema.sql` in Supabase SQL Editor to create tables.
 
 ### Brand Colors (from lion logo)
 
 Custom CSS variables in `globals.css`:
-- `--gold-400: #D4B896` - Primary accent (from lion outline)
+- `--gold-400: #D4B896` - Primary accent
 - `--brown-950: #141210` - Darkest background
 - `--brown-800: #2A2420` - Card backgrounds
 - `--brown-600: #4A403A` - Borders
-
-Finance conventions preserved:
-- Green (`#10b981`) for profit
-- Red (`#f43f5e`) for loss
 
 ### Environment Variables
 
@@ -77,22 +96,49 @@ GROQ_API_KEY=your_groq_api_key_here
 # Clerk Auth
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
 CLERK_SECRET_KEY=sk_...
+CLERK_WEBHOOK_SECRET=whsec_...  # For user sync webhook
+
+# Supabase Database
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...  # For webhook/admin operations
 ```
 
-- Get free Tradier sandbox token at https://developer.tradier.com/
-- Get free Groq API key at https://console.groq.com/
-- Create Clerk app at https://dashboard.clerk.com/
+### Routes
 
-### Auth Routes
-- `/sign-in` - Clerk sign in page (Google, Apple, Email)
-- `/sign-up` - Clerk sign up page
+**Public (no auth required):**
+- `/sign-in` - Clerk sign in
+- `/sign-up` - Clerk sign up
 - `/login` - Redirects to /sign-in
 - `/signup` - Redirects to /sign-up
-- `/admin/users` - Admin dashboard (gainsview@gmail.com only)
 
-### App Pages
-- `/` - Main options calculator
+**Protected (auth required):**
+- `/` - Main calculator (Home)
 - `/portfolio` - Portfolio tracking
 - `/pnl` - P&L tracking
 - `/ai` - Full-screen AI assistant
-- `/menu` - Settings menu
+- `/menu` - Settings & sign out
+
+**Admin (gainsview@gmail.com only):**
+- `/admin/users` - User management dashboard
+
+### Data Hooks
+
+```typescript
+import { useSupabaseUser, usePositions, useWatchlist, useTrades, useChatHistory } from "@/hooks/useUserData";
+
+// Get current user
+const { user, loading, clerkUser } = useSupabaseUser();
+
+// Positions CRUD
+const { positions, addPosition, updatePosition, deletePosition } = usePositions();
+
+// Watchlist
+const { watchlist, addToWatchlist, removeFromWatchlist } = useWatchlist();
+
+// Trades
+const { trades, addTrade, deleteTrade, totalPnL } = useTrades();
+
+// Chat history
+const { messages, addMessage, clearHistory } = useChatHistory();
+```

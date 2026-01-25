@@ -1,21 +1,12 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+// Only these routes are public - everything else requires auth
 const isPublicRoute = createRouteMatcher([
-  "/",
-  "/login(.*)",
-  "/signup(.*)",
   "/sign-in(.*)",
   "/sign-up(.*)",
-  "/forgot-password",
-  "/reset-password",
-  "/api/stock(.*)",
-  "/api/options(.*)",
-  "/api/chat(.*)",
-  "/portfolio",
-  "/pnl",
-  "/ai",
-  "/menu",
+  "/login",
+  "/signup",
 ]);
 
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
@@ -25,11 +16,23 @@ const ADMIN_EMAIL = "gainsview@gmail.com";
 export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims } = await auth();
 
+  // If not signed in and trying to access protected route, redirect to sign-in
+  if (!userId && !isPublicRoute(req)) {
+    const signInUrl = new URL("/sign-in", req.url);
+    signInUrl.searchParams.set("redirect_url", req.nextUrl.pathname);
+    return NextResponse.redirect(signInUrl);
+  }
+
+  // If signed in and trying to access sign-in/sign-up, redirect to home
+  if (userId && isPublicRoute(req)) {
+    return NextResponse.redirect(new URL("/", req.url));
+  }
+
   // Protect admin routes
   if (isAdminRoute(req)) {
     if (!userId) {
-      const signInUrl = new URL("/login", req.url);
-      signInUrl.searchParams.set("redirect_url", req.url);
+      const signInUrl = new URL("/sign-in", req.url);
+      signInUrl.searchParams.set("redirect_url", req.nextUrl.pathname);
       return NextResponse.redirect(signInUrl);
     }
 
@@ -39,18 +42,11 @@ export default clerkMiddleware(async (auth, req) => {
       return NextResponse.redirect(new URL("/", req.url));
     }
   }
-
-  // Protect non-public routes
-  if (!isPublicRoute(req) && !userId) {
-    const signInUrl = new URL("/login", req.url);
-    signInUrl.searchParams.set("redirect_url", req.url);
-    return NextResponse.redirect(signInUrl);
-  }
 });
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files
+    // Skip Next.js internals and static files
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     // Always run for API routes
     "/(api|trpc)(.*)",

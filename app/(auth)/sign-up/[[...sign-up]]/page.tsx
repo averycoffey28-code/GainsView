@@ -17,34 +17,35 @@ export default function SignUpPage() {
             <Sparkles className="w-10 h-10 text-gold-400" />
           </div>
           <h1 className="text-3xl font-bold text-brown-50 tracking-tight">GainsView</h1>
-          <p className="text-brown-400 mt-2">Start your 14-day free trial</p>
+          <p className="text-brown-400 mt-2">Start your free account</p>
         </div>
 
         <SignUp
           appearance={{
             elements: {
               rootBox: "mx-auto",
-              card: "bg-brown-900/80 backdrop-blur-xl border border-brown-700/50 shadow-2xl",
-              headerTitle: "text-brown-50",
+              card: "bg-brown-900/80 backdrop-blur-xl border border-brown-700/50 shadow-2xl rounded-2xl",
+              headerTitle: "text-brown-50 text-xl",
               headerSubtitle: "text-brown-400",
               socialButtonsBlockButton:
-                "bg-brown-800/50 border-brown-700 text-brown-100 hover:bg-brown-700/50",
-              socialButtonsBlockButtonText: "text-brown-100",
+                "bg-brown-800/50 border-brown-700 text-brown-100 hover:bg-brown-700/50 rounded-xl py-3",
+              socialButtonsBlockButtonText: "text-brown-100 font-medium",
               dividerLine: "bg-brown-700",
-              dividerText: "text-brown-500",
-              formFieldLabel: "text-brown-300",
+              dividerText: "text-brown-500 text-xs",
+              formFieldLabel: "text-brown-300 text-sm",
               formFieldInput:
-                "bg-brown-800/50 border-brown-700 text-brown-100 placeholder:text-brown-500",
+                "bg-brown-800/50 border-brown-700 text-brown-100 placeholder:text-brown-500 rounded-xl py-3",
               formButtonPrimary:
-                "bg-gold-500 hover:bg-gold-600 text-brown-900 font-semibold",
+                "bg-gold-500 hover:bg-gold-600 text-brown-900 font-semibold rounded-xl py-3",
               footerActionLink: "text-gold-400 hover:text-gold-300",
               identityPreviewEditButton: "text-gold-400 hover:text-gold-300",
+              alert: "bg-rose-500/10 border-rose-500/30 text-rose-400",
             },
           }}
           routing="path"
           path="/sign-up"
           signInUrl="/sign-in"
-          fallbackRedirectUrl="/"
+          forceRedirectUrl="/"
         />
 
         {/* Risk Disclaimer */}
