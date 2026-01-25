@@ -64,7 +64,6 @@ export default function Home() {
   const handleContractSelect = useCallback((contract: OptionContract) => {
     setSelectedContract(contract);
     setStrikePrice(contract.strike);
-    // Use mid-point of bid/ask as premium, or last if available
     const contractPremium =
       contract.last ||
       (contract.bid && contract.ask
@@ -86,19 +85,19 @@ export default function Home() {
   }, [contractType, position, strikePrice, premium, currentPrice, contracts, targetPrice]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-brown-950 via-brown-900 to-brown-950 text-brown-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-emerald-500/20 rounded-xl">
-              <BarChart3 className="w-6 h-6 text-emerald-400" />
+            <div className="p-2 bg-gold-400/20 rounded-xl">
+              <BarChart3 className="w-6 h-6 text-gold-400" />
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-brown-50">
               Options P&L Calculator
             </h1>
           </div>
-          <p className="text-slate-400 text-lg">
+          <p className="text-brown-400 text-lg">
             Visualize potential returns with live market data
           </p>
         </div>
@@ -106,7 +105,7 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Input Panel */}
           <div className="space-y-6">
-            {/* Stock Search - NEW */}
+            {/* Stock Search */}
             <StockSearch
               onQuoteLoaded={() => {}}
               onSymbolChange={handleSymbolChange}
@@ -116,7 +115,7 @@ export default function Home() {
               lastUpdated={lastUpdated}
             />
 
-            {/* Options Chain Selector - NEW */}
+            {/* Options Chain Selector */}
             {quote && expirations.length > 0 && (
               <OptionsChainSelector
                 expirations={expirations}
@@ -158,22 +157,22 @@ export default function Home() {
           <div className="lg:col-span-2 space-y-6">
             {/* Selected Contract Info */}
             {selectedContract && (
-              <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl">
+              <div className="p-4 bg-gold-400/10 border border-gold-400/20 rounded-xl">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-xs text-purple-400 uppercase tracking-wide">
+                    <span className="text-xs text-gold-400 uppercase tracking-wide">
                       Selected Contract
                     </span>
-                    <p className="text-white font-mono text-sm mt-1">
+                    <p className="text-brown-50 font-mono text-sm mt-1">
                       {selectedContract.symbol}
                     </p>
                   </div>
                   <div className="text-right">
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-brown-400">
                       Strike: ${selectedContract.strike} | Premium: $
                       {premium.toFixed(2)}
                     </span>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-brown-500 mt-1">
                       Bid: ${selectedContract.bid?.toFixed(2)} | Ask: $
                       {selectedContract.ask?.toFixed(2)}
                     </p>
@@ -204,18 +203,18 @@ export default function Home() {
         </div>
 
         {/* Footer Note */}
-        <div className="mt-8 p-4 bg-slate-800/30 rounded-xl border border-slate-700/50 flex items-start gap-3">
-          <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-slate-400">
+        <div className="mt-8 p-4 bg-brown-800/30 rounded-xl border border-brown-700/50 flex items-start gap-3">
+          <Info className="w-5 h-5 text-gold-400 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-brown-400">
             <p>
               This calculator shows profit/loss at expiration. Options can also
               be sold before expiration, where time value and implied
               volatility affect pricing.
             </p>
             <p className="mt-2">
-              <strong className="text-slate-300">Live Data:</strong> Enter a
+              <strong className="text-brown-300">Live Data:</strong> Enter a
               stock symbol to fetch real-time quotes and options chains from
-              Tradier. Requires API key in <code className="text-blue-400">.env.local</code>.
+              Tradier. Requires API key in <code className="text-gold-400">.env.local</code>.
             </p>
           </div>
         </div>

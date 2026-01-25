@@ -53,15 +53,15 @@ export default function StockSearch({
   };
 
   return (
-    <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-xl">
+    <Card className="bg-brown-800/50 border-brown-700 backdrop-blur-xl">
       <CardHeader className="pb-3">
-        <CardTitle className="text-white flex items-center justify-between">
+        <CardTitle className="text-brown-50 flex items-center justify-between">
           <span className="flex items-center gap-2">
-            <Search className="w-5 h-5 text-blue-400" />
+            <Search className="w-5 h-5 text-gold-400" />
             Stock Symbol
           </span>
           {lastUpdated && (
-            <span className="text-xs text-slate-500 font-normal">
+            <span className="text-xs text-brown-500 font-normal">
               Updated: {new Date(lastUpdated).toLocaleTimeString()}
             </span>
           )}
@@ -76,13 +76,13 @@ export default function StockSearch({
             value={symbol}
             onChange={(e) => setSymbol(e.target.value.toUpperCase())}
             onKeyDown={handleKeyDown}
-            className="bg-slate-800/50 border-slate-700 text-white uppercase"
+            className="bg-brown-700/50 border-brown-600 text-brown-50 uppercase placeholder:text-brown-500"
             disabled={isLoading}
           />
           <Button
             onClick={handleSearch}
             disabled={isLoading || !symbol.trim()}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-gold-600 hover:bg-gold-700 text-brown-900"
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -95,7 +95,7 @@ export default function StockSearch({
               variant="outline"
               onClick={handleRefresh}
               disabled={isLoading}
-              className="border-slate-700 text-slate-300 hover:bg-slate-800"
+              className="border-brown-600 text-brown-300 hover:bg-brown-700"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
             </Button>
@@ -112,13 +112,13 @@ export default function StockSearch({
 
         {/* Quote Display */}
         {quote && !error && (
-          <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700">
+          <div className="p-4 bg-brown-700/50 rounded-xl border border-brown-600">
             <div className="flex items-center justify-between mb-2">
               <div>
-                <span className="text-2xl font-bold text-white">
+                <span className="text-2xl font-bold text-brown-50">
                   {quote.symbol}
                 </span>
-                <p className="text-xs text-slate-500 truncate max-w-[200px]">
+                <p className="text-xs text-brown-500 truncate max-w-[200px]">
                   {quote.description}
                 </p>
               </div>
@@ -139,7 +139,7 @@ export default function StockSearch({
               </Badge>
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-white font-mono">
+              <span className="text-3xl font-bold text-gold-400 font-mono">
                 ${quote.price?.toFixed(2)}
               </span>
               <span
@@ -151,7 +151,7 @@ export default function StockSearch({
                 {quote.change?.toFixed(2)}
               </span>
             </div>
-            <div className="flex gap-4 mt-2 text-xs text-slate-500">
+            <div className="flex gap-4 mt-2 text-xs text-brown-500">
               <span>H: ${quote.high?.toFixed(2)}</span>
               <span>L: ${quote.low?.toFixed(2)}</span>
               <span>Vol: {quote.volume?.toLocaleString()}</span>
@@ -161,8 +161,8 @@ export default function StockSearch({
 
         {/* Placeholder when no quote */}
         {!quote && !error && !isLoading && (
-          <div className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/50 text-center">
-            <p className="text-sm text-slate-500">
+          <div className="p-4 bg-brown-700/30 rounded-xl border border-brown-600/50 text-center">
+            <p className="text-sm text-brown-500">
               Enter a stock symbol to fetch live market data
             </p>
           </div>

@@ -30,17 +30,17 @@ const colorSchemes = {
     text: "text-rose-400",
     icon: "text-rose-400",
   },
-  amber: {
-    bg: "bg-amber-500/10",
-    border: "border-amber-500/20",
-    text: "text-amber-400",
-    icon: "text-amber-400",
+  gold: {
+    bg: "bg-gold-400/10",
+    border: "border-gold-400/20",
+    text: "text-gold-400",
+    icon: "text-gold-400",
   },
-  blue: {
-    bg: "bg-blue-500/10",
-    border: "border-blue-500/20",
-    text: "text-blue-400",
-    icon: "text-blue-400",
+  brown: {
+    bg: "bg-brown-700/50",
+    border: "border-brown-600",
+    text: "text-brown-300",
+    icon: "text-brown-400",
   },
 };
 
@@ -79,7 +79,7 @@ export default function ResultsSummary({
       value: `$${breakEven.toFixed(2)}`,
       subtext: "Price to break even",
       icon: Target,
-      color: colorSchemes.amber,
+      color: colorSchemes.gold,
     },
     {
       label: "Max Profit",
@@ -115,14 +115,14 @@ export default function ResultsSummary({
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Icon className={`w-4 h-4 ${card.color.icon}`} />
-                <span className="text-xs text-slate-400 uppercase tracking-wide">
+                <span className="text-xs text-brown-400 uppercase tracking-wide">
                   {card.label}
                 </span>
               </div>
               <div className={`text-xl font-bold ${card.color.text} font-mono`}>
                 {card.value}
               </div>
-              <p className="text-xs text-slate-500 mt-1">{card.subtext}</p>
+              <p className="text-xs text-brown-500 mt-1">{card.subtext}</p>
             </CardContent>
           </Card>
         );

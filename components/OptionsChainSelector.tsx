@@ -56,17 +56,17 @@ export default function OptionsChainSelector({
     : null;
 
   return (
-    <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-xl">
+    <Card className="bg-brown-800/50 border-brown-700 backdrop-blur-xl">
       <CardHeader className="pb-3">
-        <CardTitle className="text-white flex items-center gap-2">
-          <List className="w-5 h-5 text-purple-400" />
+        <CardTitle className="text-brown-50 flex items-center gap-2">
+          <List className="w-5 h-5 text-gold-400" />
           Options Chain
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Expiration Selector */}
         <div className="space-y-2">
-          <Label className="text-slate-300 flex items-center gap-2">
+          <Label className="text-brown-300 flex items-center gap-2">
             <Calendar className="w-4 h-4" />
             Expiration Date
           </Label>
@@ -75,15 +75,15 @@ export default function OptionsChainSelector({
             onValueChange={onExpirationChange}
             disabled={isLoading}
           >
-            <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white">
+            <SelectTrigger className="bg-brown-700/50 border-brown-600 text-brown-50">
               <SelectValue placeholder="Select expiration" />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
+            <SelectContent className="bg-brown-800 border-brown-600">
               {expirations.slice(0, 12).map((exp) => (
                 <SelectItem
                   key={exp}
                   value={exp}
-                  className="text-white hover:bg-slate-700"
+                  className="text-brown-50 hover:bg-brown-700 focus:bg-brown-700"
                 >
                   {new Date(exp + "T00:00:00").toLocaleDateString("en-US", {
                     weekday: "short",
@@ -100,21 +100,21 @@ export default function OptionsChainSelector({
         {/* Loading State */}
         {isLoading && selectedExpiration && (
           <div className="flex items-center justify-center p-4">
-            <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
-            <span className="ml-2 text-slate-400">Loading options...</span>
+            <Loader2 className="w-6 h-6 animate-spin text-gold-400" />
+            <span className="ml-2 text-brown-400">Loading options...</span>
           </div>
         )}
 
         {/* Options Chain Table */}
         {chain && contracts.length > 0 && !isLoading && (
           <div className="space-y-2">
-            <Label className="text-slate-300">
+            <Label className="text-brown-300">
               Select {contractType === "call" ? "Call" : "Put"} Contract
             </Label>
-            <div className="max-h-[300px] overflow-y-auto rounded-lg border border-slate-700">
+            <div className="max-h-[300px] overflow-y-auto rounded-lg border border-brown-600">
               <table className="w-full text-sm">
-                <thead className="bg-slate-800/80 sticky top-0">
-                  <tr className="text-slate-400 text-xs uppercase">
+                <thead className="bg-brown-700/80 sticky top-0">
+                  <tr className="text-brown-400 text-xs uppercase">
                     <th className="p-2 text-left">Strike</th>
                     <th className="p-2 text-right">Bid</th>
                     <th className="p-2 text-right">Ask</th>
@@ -134,15 +134,15 @@ export default function OptionsChainSelector({
                     return (
                       <tr
                         key={contract.symbol}
-                        className={`border-t border-slate-700/50 hover:bg-slate-800/50 transition-colors ${
-                          isATM ? "bg-blue-500/10" : ""
+                        className={`border-t border-brown-700/50 hover:bg-brown-700/50 transition-colors ${
+                          isATM ? "bg-gold-400/10" : ""
                         }`}
                       >
                         <td className="p-2">
                           <div className="flex items-center gap-2">
                             <span
                               className={`font-mono ${
-                                isITM ? "text-emerald-400" : "text-white"
+                                isITM ? "text-emerald-400" : "text-brown-50"
                               }`}
                             >
                               ${contract.strike.toFixed(2)}
@@ -150,7 +150,7 @@ export default function OptionsChainSelector({
                             {isATM && (
                               <Badge
                                 variant="outline"
-                                className="text-[10px] px-1 py-0 border-blue-500 text-blue-400"
+                                className="text-[10px] px-1 py-0 border-gold-400 text-gold-400"
                               >
                                 ATM
                               </Badge>
@@ -165,16 +165,16 @@ export default function OptionsChainSelector({
                             )}
                           </div>
                         </td>
-                        <td className="p-2 text-right font-mono text-slate-300">
+                        <td className="p-2 text-right font-mono text-brown-300">
                           ${contract.bid?.toFixed(2) || "-"}
                         </td>
-                        <td className="p-2 text-right font-mono text-slate-300">
+                        <td className="p-2 text-right font-mono text-brown-300">
                           ${contract.ask?.toFixed(2) || "-"}
                         </td>
-                        <td className="p-2 text-right font-mono text-white">
+                        <td className="p-2 text-right font-mono text-brown-50">
                           ${contract.last?.toFixed(2) || "-"}
                         </td>
-                        <td className="p-2 text-right text-slate-400">
+                        <td className="p-2 text-right text-brown-400">
                           {contract.volume?.toLocaleString() || "-"}
                         </td>
                         <td className="p-2">
@@ -182,7 +182,7 @@ export default function OptionsChainSelector({
                             size="sm"
                             variant="outline"
                             onClick={() => onContractSelect(contract)}
-                            className="h-7 px-2 text-xs border-slate-600 text-slate-300 hover:bg-slate-700"
+                            className="h-7 px-2 text-xs border-gold-600/50 text-gold-400 hover:bg-gold-600/20 hover:text-gold-300"
                           >
                             Select
                           </Button>
@@ -193,7 +193,7 @@ export default function OptionsChainSelector({
                 </tbody>
               </table>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-brown-500">
               Showing {contracts.length} contracts.{" "}
               <span className="text-emerald-400">Green = In the Money</span>
             </p>
@@ -202,8 +202,8 @@ export default function OptionsChainSelector({
 
         {/* No contracts message */}
         {selectedExpiration && !isLoading && contracts.length === 0 && (
-          <div className="p-4 bg-slate-800/30 rounded-lg text-center">
-            <p className="text-sm text-slate-500">
+          <div className="p-4 bg-brown-700/30 rounded-lg text-center">
+            <p className="text-sm text-brown-500">
               No {contractType} options available for this expiration
             </p>
           </div>

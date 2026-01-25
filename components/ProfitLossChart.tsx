@@ -40,11 +40,11 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (active && payload && payload.length) {
     const pnl = payload[0].value;
     return (
-      <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 shadow-xl">
-        <p className="text-slate-400 text-sm">
-          Stock Price: <span className="text-white font-mono">${label}</span>
+      <div className="bg-brown-800 border border-brown-600 rounded-lg p-3 shadow-xl">
+        <p className="text-brown-400 text-sm">
+          Stock Price: <span className="text-brown-50 font-mono">${label}</span>
         </p>
-        <p className="text-slate-400 text-sm">
+        <p className="text-brown-400 text-sm">
           P&L:{" "}
           <span
             className={`font-mono font-bold ${
@@ -83,11 +83,11 @@ export default function ProfitLossChart({
   const off = gradientOffset();
 
   return (
-    <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-xl">
+    <Card className="bg-brown-800/50 border-brown-700 backdrop-blur-xl">
       <CardHeader className="pb-2">
-        <CardTitle className="text-white flex items-center justify-between">
+        <CardTitle className="text-brown-50 flex items-center justify-between">
           <span className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-emerald-400" />
+            <BarChart3 className="w-5 h-5 text-gold-400" />
             Profit & Loss at Expiration
           </span>
           <Badge
@@ -115,61 +115,61 @@ export default function ProfitLossChart({
                   <stop offset={off} stopColor="#f43f5e" stopOpacity={0.8} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#4A403A" />
               <XAxis
                 dataKey="price"
-                stroke="#64748b"
+                stroke="#9A8F85"
                 tickFormatter={(value) => `$${value}`}
                 fontSize={12}
               />
               <YAxis
-                stroke="#64748b"
+                stroke="#9A8F85"
                 tickFormatter={(value) => `$${value}`}
                 fontSize={12}
               />
               <Tooltip content={<CustomTooltip />} />
-              <ReferenceLine y={0} stroke="#64748b" strokeWidth={2} />
+              <ReferenceLine y={0} stroke="#9A8F85" strokeWidth={2} />
               <ReferenceLine
                 x={breakEven}
-                stroke="#f59e0b"
+                stroke="#D4B896"
                 strokeDasharray="5 5"
                 label={{
                   value: "B/E",
                   position: "top",
-                  fill: "#f59e0b",
+                  fill: "#D4B896",
                   fontSize: 12,
                 }}
               />
               <ReferenceLine
                 x={strikePrice}
-                stroke="#a855f7"
+                stroke="#E8C87A"
                 strokeDasharray="5 5"
                 label={{
                   value: "Strike",
                   position: "top",
-                  fill: "#a855f7",
+                  fill: "#E8C87A",
                   fontSize: 12,
                 }}
               />
               <ReferenceLine
                 x={currentPrice}
-                stroke="#3b82f6"
+                stroke="#B8A894"
                 strokeDasharray="5 5"
                 label={{
                   value: "Current",
                   position: "top",
-                  fill: "#3b82f6",
+                  fill: "#B8A894",
                   fontSize: 12,
                 }}
               />
               <ReferenceLine
                 x={targetPrice}
-                stroke="#06b6d4"
+                stroke="#C4A67A"
                 strokeDasharray="5 5"
                 label={{
                   value: "Target",
                   position: "top",
-                  fill: "#06b6d4",
+                  fill: "#C4A67A",
                   fontSize: 12,
                 }}
               />
@@ -185,22 +185,22 @@ export default function ProfitLossChart({
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-slate-700/50">
+        <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-brown-700/50">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-amber-500" />
-            <span className="text-xs text-slate-400">Break Even</span>
+            <div className="w-3 h-3 rounded-full bg-gold-400" />
+            <span className="text-xs text-brown-400">Break Even</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-purple-500" />
-            <span className="text-xs text-slate-400">Strike Price</span>
+            <div className="w-3 h-3 rounded-full bg-gold-300" />
+            <span className="text-xs text-brown-400">Strike Price</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-blue-500" />
-            <span className="text-xs text-slate-400">Current Price</span>
+            <div className="w-3 h-3 rounded-full bg-brown-300" />
+            <span className="text-xs text-brown-400">Current Price</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-cyan-500" />
-            <span className="text-xs text-slate-400">Target Price</span>
+            <div className="w-3 h-3 rounded-full bg-gold-500" />
+            <span className="text-xs text-brown-400">Target Price</span>
           </div>
         </div>
       </CardContent>
