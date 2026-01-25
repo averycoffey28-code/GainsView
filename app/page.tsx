@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { BarChart3, Info } from "lucide-react";
 import ContractInputForm from "@/components/ContractInputForm";
 import ResultsSummary from "@/components/ResultsSummary";
 import PriceScenarioSlider from "@/components/PriceScenarioSlider";
 import ProfitLossChart from "@/components/ProfitLossChart";
+import StockSearch from "@/components/StockSearch";
+import OptionsChainSelector from "@/components/OptionsChainSelector";
+import { useMarketData } from "@/hooks/useMarketData";
+import { OptionContract } from "@/lib/types";
 import {
   ContractType,
   Position,
@@ -20,6 +24,54 @@ export default function Home() {
   const [currentPrice, setCurrentPrice] = useState(100);
   const [contracts, setContracts] = useState(1);
   const [targetPrice, setTargetPrice] = useState(110);
+  const [selectedContract, setSelectedContract] = useState<OptionContract | null>(null);
+
+  const {
+    quote,
+    expirations,
+    chain,
+    selectedExpiration,
+    isLoading,
+    error,
+    lastUpdated,
+    fetchQuote,
+    fetchOptionsChain,
+  } = useMarketData();
+
+  const handleSymbolChange = useCallback(
+    async (symbol: string) => {
+      const quoteData = await fetchQuote(symbol);
+      if (quoteData) {
+        setCurrentPrice(quoteData.price);
+        setTargetPrice(Math.round(quoteData.price * 1.1));
+        setStrikePrice(Math.round(quoteData.price));
+        setSelectedContract(null);
+      }
+    },
+    [fetchQuote]
+  );
+
+  const handleExpirationChange = useCallback(
+    async (expiration: string) => {
+      if (quote?.symbol) {
+        await fetchOptionsChain(quote.symbol, expiration);
+        setSelectedContract(null);
+      }
+    },
+    [quote?.symbol, fetchOptionsChain]
+  );
+
+  const handleContractSelect = useCallback((contract: OptionContract) => {
+    setSelectedContract(contract);
+    setStrikePrice(contract.strike);
+    // Use mid-point of bid/ask as premium, or last if available
+    const contractPremium =
+      contract.last ||
+      (contract.bid && contract.ask
+        ? (contract.bid + contract.ask) / 2
+        : contract.ask || contract.bid || 0);
+    setPremium(contractPremium);
+  }, []);
 
   const calculations = useMemo(() => {
     return calculateAll({
@@ -47,13 +99,37 @@ export default function Home() {
             </h1>
           </div>
           <p className="text-slate-400 text-lg">
-            Visualize potential returns before you trade
+            Visualize potential returns with live market data
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Input Panel */}
           <div className="space-y-6">
+            {/* Stock Search - NEW */}
+            <StockSearch
+              onQuoteLoaded={() => {}}
+              onSymbolChange={handleSymbolChange}
+              quote={quote}
+              isLoading={isLoading}
+              error={error}
+              lastUpdated={lastUpdated}
+            />
+
+            {/* Options Chain Selector - NEW */}
+            {quote && expirations.length > 0 && (
+              <OptionsChainSelector
+                expirations={expirations}
+                selectedExpiration={selectedExpiration}
+                onExpirationChange={handleExpirationChange}
+                chain={chain}
+                contractType={contractType}
+                onContractSelect={handleContractSelect}
+                isLoading={isLoading}
+                currentPrice={currentPrice}
+              />
+            )}
+
             <ContractInputForm
               contractType={contractType}
               setContractType={setContractType}
@@ -80,6 +156,32 @@ export default function Home() {
 
           {/* Chart & Results */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Selected Contract Info */}
+            {selectedContract && (
+              <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-purple-400 uppercase tracking-wide">
+                      Selected Contract
+                    </span>
+                    <p className="text-white font-mono text-sm mt-1">
+                      {selectedContract.symbol}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs text-slate-400">
+                      Strike: ${selectedContract.strike} | Premium: $
+                      {premium.toFixed(2)}
+                    </span>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Bid: ${selectedContract.bid?.toFixed(2)} | Ask: $
+                      {selectedContract.ask?.toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Summary Cards */}
             <ResultsSummary
               calculations={calculations}
@@ -104,12 +206,18 @@ export default function Home() {
         {/* Footer Note */}
         <div className="mt-8 p-4 bg-slate-800/30 rounded-xl border border-slate-700/50 flex items-start gap-3">
           <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-slate-400">
-            This calculator shows profit/loss at expiration. Options can also be
-            sold before expiration, where time value and implied volatility
-            affect pricing. This tool is for educational purposes only and
-            should not be considered financial advice.
-          </p>
+          <div className="text-sm text-slate-400">
+            <p>
+              This calculator shows profit/loss at expiration. Options can also
+              be sold before expiration, where time value and implied
+              volatility affect pricing.
+            </p>
+            <p className="mt-2">
+              <strong className="text-slate-300">Live Data:</strong> Enter a
+              stock symbol to fetch real-time quotes and options chains from
+              Tradier. Requires API key in <code className="text-blue-400">.env.local</code>.
+            </p>
+          </div>
         </div>
       </div>
     </div>
