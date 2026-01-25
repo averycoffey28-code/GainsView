@@ -26,6 +26,8 @@ vercel --prod    # Deploy to production
 - shadcn/ui components (in `components/ui/`)
 - Recharts for P&L visualization
 - Tradier API for live market data
+- Supabase Auth (Google, Apple, Email/Password, Magic Link)
+- Groq AI (Llama 3.1 70B)
 
 ### Key Files
 
@@ -69,7 +71,21 @@ TRADIER_API_URL=https://sandbox.tradier.com/v1
 
 # AI Trading Assistant (Groq)
 GROQ_API_KEY=your_groq_api_key_here
+
+# Supabase Auth
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ```
 
 - Get free Tradier sandbox token at https://developer.tradier.com/
 - Get free Groq API key at https://console.groq.com/
+- Create Supabase project at https://supabase.com/dashboard
+
+### Auth Routes
+- `/login` - Sign in page (Google, Apple, Email, Magic Link)
+- `/signup` - Sign up with required checkboxes (Terms, Risk, Age 18+)
+- `/forgot-password` - Password reset request
+- `/reset-password` - Set new password
+- `/auth/callback` - OAuth callback handler
+- `/admin/users` - Admin dashboard (gainsview@gmail.com only)
