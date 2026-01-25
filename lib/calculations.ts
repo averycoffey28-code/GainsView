@@ -88,12 +88,13 @@ export function generatePriceRangeData(
   position: Position,
   strikePrice: number,
   premium: number,
-  contracts: number
+  contracts: number,
+  dataPoints: number = 200
 ): { price: number; pnl: number }[] {
   const priceRange: { price: number; pnl: number }[] = [];
   const minPrice = Math.max(0, strikePrice * 0.7);
   const maxPrice = strikePrice * 1.3;
-  const step = (maxPrice - minPrice) / 50;
+  const step = (maxPrice - minPrice) / dataPoints;
 
   for (let price = minPrice; price <= maxPrice; price += step) {
     const pnl = calculatePnL(

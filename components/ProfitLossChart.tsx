@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useCallback } from "react";
 import {
   AreaChart,
   Area,
@@ -28,6 +29,7 @@ interface ProfitLossChartProps {
 interface TooltipPayload {
   value: number;
   dataKey: string;
+  payload: { price: number; pnl: number };
 }
 
 interface CustomTooltipProps {
@@ -36,22 +38,23 @@ interface CustomTooltipProps {
   label?: number;
 }
 
-function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
+function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (active && payload && payload.length) {
     const pnl = payload[0].value;
+    const price = payload[0].payload.price;
     return (
-      <div className="bg-brown-800 border border-brown-600 rounded-lg p-3 shadow-xl">
+      <div className="bg-brown-900/95 border border-brown-600 rounded-lg p-3 shadow-2xl backdrop-blur-sm">
         <p className="text-brown-400 text-sm">
-          Stock Price: <span className="text-brown-50 font-mono">${label}</span>
+          Stock Price: <span className="text-brown-50 font-mono font-semibold">${price.toFixed(2)}</span>
         </p>
-        <p className="text-brown-400 text-sm">
+        <p className="text-brown-400 text-sm mt-1">
           P&L:{" "}
           <span
-            className={`font-mono font-bold ${
+            className={`font-mono font-bold text-lg ${
               pnl >= 0 ? "text-emerald-400" : "text-rose-400"
             }`}
           >
-            {pnl >= 0 ? "+" : ""}${pnl.toLocaleString()}
+            {pnl >= 0 ? "+" : ""}${pnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </p>
       </div>
@@ -69,8 +72,10 @@ export default function ProfitLossChart({
   contractType,
   position,
 }: ProfitLossChartProps) {
-  // Calculate gradient offset for profit/loss split
-  const gradientOffset = () => {
+  // Memoize gradient offset calculation
+  const gradientOffset = useMemo(() => {
+    if (!data || data.length === 0) return 0.5;
+
     const dataMax = Math.max(...data.map((d) => d.pnl));
     const dataMin = Math.min(...data.map((d) => d.pnl));
 
@@ -78,9 +83,18 @@ export default function ProfitLossChart({
     if (dataMin >= 0) return 1;
 
     return dataMax / (dataMax - dataMin);
-  };
+  }, [data]);
 
-  const off = gradientOffset();
+  // Memoize axis tick formatter
+  const formatAxisTick = useCallback((value: number) => `$${value}`, []);
+
+  // Memoize reference lines to prevent re-renders
+  const referenceLines = useMemo(() => ({
+    breakEven: Number(breakEven.toFixed(2)),
+    strikePrice: Number(strikePrice.toFixed(2)),
+    currentPrice: Number(currentPrice.toFixed(2)),
+    targetPrice: Number(targetPrice.toFixed(2)),
+  }), [breakEven, strikePrice, currentPrice, targetPrice]);
 
   return (
     <Card className="bg-brown-800/50 border-brown-700 backdrop-blur-xl">
@@ -111,26 +125,39 @@ export default function ProfitLossChart({
             >
               <defs>
                 <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset={off} stopColor="#10b981" stopOpacity={0.8} />
-                  <stop offset={off} stopColor="#f43f5e" stopOpacity={0.8} />
+                  <stop offset={gradientOffset} stopColor="#10b981" stopOpacity={0.8} />
+                  <stop offset={gradientOffset} stopColor="#f43f5e" stopOpacity={0.8} />
+                </linearGradient>
+                <linearGradient id="strokeGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset={gradientOffset} stopColor="#34d399" stopOpacity={1} />
+                  <stop offset={gradientOffset} stopColor="#fb7185" stopOpacity={1} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#4A403A" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#4A403A" opacity={0.5} />
               <XAxis
                 dataKey="price"
                 stroke="#9A8F85"
-                tickFormatter={(value) => `$${value}`}
+                tickFormatter={formatAxisTick}
                 fontSize={12}
+                tickCount={8}
               />
               <YAxis
                 stroke="#9A8F85"
-                tickFormatter={(value) => `$${value}`}
+                tickFormatter={formatAxisTick}
                 fontSize={12}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{
+                  stroke: "#D4B896",
+                  strokeWidth: 1,
+                  strokeDasharray: "4 4",
+                }}
+                isAnimationActive={false}
+              />
               <ReferenceLine y={0} stroke="#9A8F85" strokeWidth={2} />
               <ReferenceLine
-                x={breakEven}
+                x={referenceLines.breakEven}
                 stroke="#D4B896"
                 strokeDasharray="5 5"
                 label={{
@@ -141,7 +168,7 @@ export default function ProfitLossChart({
                 }}
               />
               <ReferenceLine
-                x={strikePrice}
+                x={referenceLines.strikePrice}
                 stroke="#E8C87A"
                 strokeDasharray="5 5"
                 label={{
@@ -152,7 +179,7 @@ export default function ProfitLossChart({
                 }}
               />
               <ReferenceLine
-                x={currentPrice}
+                x={referenceLines.currentPrice}
                 stroke="#B8A894"
                 strokeDasharray="5 5"
                 label={{
@@ -163,7 +190,7 @@ export default function ProfitLossChart({
                 }}
               />
               <ReferenceLine
-                x={targetPrice}
+                x={referenceLines.targetPrice}
                 stroke="#C4A67A"
                 strokeDasharray="5 5"
                 label={{
@@ -176,9 +203,18 @@ export default function ProfitLossChart({
               <Area
                 type="monotone"
                 dataKey="pnl"
-                stroke="#10b981"
+                stroke="url(#strokeGradient)"
                 fill="url(#splitColor)"
-                strokeWidth={2}
+                strokeWidth={2.5}
+                isAnimationActive={true}
+                animationDuration={300}
+                animationEasing="ease-out"
+                activeDot={{
+                  r: 6,
+                  fill: "#D4B896",
+                  stroke: "#141210",
+                  strokeWidth: 2,
+                }}
               />
             </AreaChart>
           </ResponsiveContainer>
