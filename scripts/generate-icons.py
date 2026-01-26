@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
 Generate app icons for GainsView PWA
-Creates icons with dark brown background and centered bull logo
+Crops the original bull logo image to a square and resizes
 """
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image
 import os
 
 # Paths
@@ -12,10 +12,6 @@ PROJECT_ROOT = "/Users/averycoffey/Desktop/website/options-calculator"
 LOGO_PATH = f"{PROJECT_ROOT}/public/images/bull-logo.png"
 ICONS_DIR = f"{PROJECT_ROOT}/public/icons"
 PUBLIC_DIR = f"{PROJECT_ROOT}/public"
-
-# Colors
-BACKGROUND_COLOR = (26, 20, 16)  # #1A1410 - dark brown
-GLOW_COLOR = (212, 175, 55, 80)  # Gold with alpha for subtle glow
 
 # Icon sizes to generate
 ICON_SIZES = {
@@ -33,7 +29,7 @@ ICON_SIZES = {
     "favicon-16x16.png": 16,
 }
 
-# Apple Touch Icons (need specific names in public root)
+# Apple Touch Icons
 APPLE_ICONS = {
     "apple-touch-icon.png": 180,
     "apple-touch-icon-180x180.png": 180,
@@ -41,123 +37,78 @@ APPLE_ICONS = {
     "apple-touch-icon-120x120.png": 120,
 }
 
-def create_icon(logo_img, size, output_path, with_glow=True):
-    """Create an icon at the specified size with background and logo"""
-    # Create new image with background color
-    icon = Image.new("RGBA", (size, size), BACKGROUND_COLOR)
+def crop_to_square_centered(img, zoom_factor=1.0):
+    """
+    Crop image to a square, centered on the bull logo.
+    zoom_factor > 1 means zoom in more (bull fills more of the frame)
+    """
+    width, height = img.size
 
-    # Calculate logo size (75% of icon size for prominence)
-    logo_size = int(size * 0.75)
+    # The original image is 1536x1024 (wider than tall)
+    # We want a square crop, using the height as the base
+    # Then we can zoom in by reducing the crop size
 
-    # Add subtle gold glow behind logo for larger icons
-    if with_glow and size >= 64:
-        # Create glow layer
-        glow = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-        glow_draw = ImageDraw.Draw(glow)
+    base_size = min(width, height)
+    crop_size = int(base_size / zoom_factor)
 
-        # Draw a gold circle for glow effect
-        glow_radius = int(logo_size * 0.6)
-        center = size // 2
-        glow_draw.ellipse(
-            [center - glow_radius, center - glow_radius,
-             center + glow_radius, center + glow_radius],
-            fill=GLOW_COLOR
-        )
+    # Center the crop on the image
+    # The bull is roughly centered in the original image
+    center_x = width // 2
+    center_y = height // 2
 
-        # Blur the glow
-        glow = glow.filter(ImageFilter.GaussianBlur(radius=size // 10))
+    # Calculate crop box
+    left = center_x - crop_size // 2
+    top = center_y - crop_size // 2
+    right = left + crop_size
+    bottom = top + crop_size
 
-        # Composite glow onto icon
-        icon = Image.alpha_composite(icon, glow)
+    # Make sure we don't go out of bounds
+    if left < 0:
+        left = 0
+        right = crop_size
+    if top < 0:
+        top = 0
+        bottom = crop_size
+    if right > width:
+        right = width
+        left = width - crop_size
+    if bottom > height:
+        bottom = height
+        top = height - crop_size
 
-    # Resize logo maintaining aspect ratio
-    logo_resized = logo_img.copy()
-    logo_resized.thumbnail((logo_size, logo_size), Image.Resampling.LANCZOS)
+    return img.crop((left, top, right, bottom))
 
-    # Calculate position to center the logo
-    logo_width, logo_height = logo_resized.size
-    x = (size - logo_width) // 2
-    y = (size - logo_height) // 2
+def create_icon(cropped_img, size, output_path):
+    """Resize the cropped square image to the target size"""
+    resized = cropped_img.resize((size, size), Image.Resampling.LANCZOS)
 
-    # Paste logo onto icon (using logo as mask for transparency)
-    icon.paste(logo_resized, (x, y), logo_resized)
+    # Convert to RGB (no alpha needed, solid background from original)
+    if resized.mode == 'RGBA':
+        # Create RGB image with the same content
+        rgb_img = Image.new('RGB', resized.size, (26, 20, 16))  # fallback bg color
+        rgb_img.paste(resized, mask=resized.split()[3] if len(resized.split()) > 3 else None)
+        resized = rgb_img
 
-    # Convert to RGB for PNG output (no alpha needed for final icon)
-    final = Image.new("RGB", (size, size), BACKGROUND_COLOR)
-    final.paste(icon, (0, 0), icon)
-
-    # Save
-    final.save(output_path, "PNG", optimize=True)
+    resized.save(output_path, "PNG", optimize=True)
     print(f"Created: {output_path} ({size}x{size})")
 
-def create_maskable_icon(logo_img, size, output_path):
-    """Create maskable icon with safe zone padding"""
-    # Maskable icons need 10% padding on all sides (safe zone)
-    # Logo should only fill the center 80%
-    icon = Image.new("RGBA", (size, size), BACKGROUND_COLOR)
-
-    # Calculate logo size (60% of icon for maskable safe zone)
-    logo_size = int(size * 0.60)
-
-    # Add glow
-    glow = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    glow_draw = ImageDraw.Draw(glow)
-    glow_radius = int(logo_size * 0.55)
-    center = size // 2
-    glow_draw.ellipse(
-        [center - glow_radius, center - glow_radius,
-         center + glow_radius, center + glow_radius],
-        fill=GLOW_COLOR
-    )
-    glow = glow.filter(ImageFilter.GaussianBlur(radius=size // 12))
-    icon = Image.alpha_composite(icon, glow)
-
-    # Resize logo
-    logo_resized = logo_img.copy()
-    logo_resized.thumbnail((logo_size, logo_size), Image.Resampling.LANCZOS)
-
-    # Center the logo
-    logo_width, logo_height = logo_resized.size
-    x = (size - logo_width) // 2
-    y = (size - logo_height) // 2
-
-    icon.paste(logo_resized, (x, y), logo_resized)
-
-    # Convert to RGB
-    final = Image.new("RGB", (size, size), BACKGROUND_COLOR)
-    final.paste(icon, (0, 0), icon)
-
-    final.save(output_path, "PNG", optimize=True)
-    print(f"Created maskable: {output_path} ({size}x{size})")
-
-def create_favicon_ico(logo_img, output_path):
+def create_favicon_ico(cropped_img, output_path):
     """Create multi-size favicon.ico"""
-    sizes = [(16, 16), (32, 32), (48, 48)]
+    sizes = [16, 32, 48]
     images = []
 
     for size in sizes:
-        icon = Image.new("RGBA", size, BACKGROUND_COLOR)
-        logo_size = int(size[0] * 0.80)  # 80% for small icons
+        resized = cropped_img.resize((size, size), Image.Resampling.LANCZOS)
+        if resized.mode == 'RGBA':
+            rgb_img = Image.new('RGB', resized.size, (26, 20, 16))
+            rgb_img.paste(resized, mask=resized.split()[3] if len(resized.split()) > 3 else None)
+            resized = rgb_img
+        images.append(resized)
 
-        logo_resized = logo_img.copy()
-        logo_resized.thumbnail((logo_size, logo_size), Image.Resampling.LANCZOS)
-
-        logo_width, logo_height = logo_resized.size
-        x = (size[0] - logo_width) // 2
-        y = (size[1] - logo_height) // 2
-
-        icon.paste(logo_resized, (x, y), logo_resized)
-
-        # Convert to RGB
-        final = Image.new("RGB", size, BACKGROUND_COLOR)
-        final.paste(icon, (0, 0), icon)
-        images.append(final)
-
-    # Save as ICO with multiple sizes
     images[0].save(
         output_path,
         format="ICO",
-        sizes=[(img.width, img.height) for img in images],
+        sizes=[(size, size) for size in sizes],
         append_images=images[1:]
     )
     print(f"Created: {output_path} (multi-size favicon)")
@@ -168,36 +119,49 @@ def main():
 
     # Load the source logo
     print(f"Loading logo from: {LOGO_PATH}")
-    logo = Image.open(LOGO_PATH).convert("RGBA")
-    print(f"Logo size: {logo.size}")
+    logo = Image.open(LOGO_PATH)
+    print(f"Original size: {logo.size}")
+
+    # Convert to RGBA if needed
+    if logo.mode != 'RGBA':
+        logo = logo.convert('RGBA')
+
+    # Crop to square, zoomed in on the bull (1.15 = 15% zoom)
+    # This makes the bull fill about 80% of the icon
+    print("\nCropping to square, centered on bull...")
+    cropped = crop_to_square_centered(logo, zoom_factor=1.15)
+    print(f"Cropped size: {cropped.size}")
 
     # Generate PWA icons in /public/icons/
     print("\n--- Generating PWA Icons ---")
     for filename, size in ICON_SIZES.items():
         output_path = os.path.join(ICONS_DIR, filename)
-        create_icon(logo, size, output_path)
+        create_icon(cropped, size, output_path)
 
-    # Generate maskable icon
-    create_maskable_icon(logo, 512, os.path.join(ICONS_DIR, "maskable-512x512.png"))
+    # Generate maskable icon (same as regular, OS handles safe zone)
+    create_icon(cropped, 512, os.path.join(ICONS_DIR, "maskable-512x512.png"))
+    print(f"Created: {os.path.join(ICONS_DIR, 'maskable-512x512.png')} (512x512 maskable)")
 
     # Generate Apple Touch Icons in /public/
     print("\n--- Generating Apple Touch Icons ---")
     for filename, size in APPLE_ICONS.items():
         output_path = os.path.join(PUBLIC_DIR, filename)
-        create_icon(logo, size, output_path)
+        create_icon(cropped, size, output_path)
 
-    # Also copy main apple-touch-icon to icons folder for manifest
-    create_icon(logo, 180, os.path.join(ICONS_DIR, "apple-touch-icon.png"))
+    # Also copy to icons folder
+    create_icon(cropped, 180, os.path.join(ICONS_DIR, "apple-touch-icon.png"))
 
     # Generate favicon.ico in /public/
     print("\n--- Generating Favicon ---")
-    create_favicon_ico(logo, os.path.join(PUBLIC_DIR, "favicon.ico"))
+    create_favicon_ico(cropped, os.path.join(PUBLIC_DIR, "favicon.ico"))
 
-    # Copy favicon PNGs to public root as well
-    create_icon(logo, 32, os.path.join(PUBLIC_DIR, "favicon-32x32.png"), with_glow=False)
-    create_icon(logo, 16, os.path.join(PUBLIC_DIR, "favicon-16x16.png"), with_glow=False)
+    # Copy favicon PNGs to public root
+    create_icon(cropped, 32, os.path.join(PUBLIC_DIR, "favicon-32x32.png"))
+    create_icon(cropped, 16, os.path.join(PUBLIC_DIR, "favicon-16x16.png"))
 
     print("\n--- All icons generated successfully! ---")
+    print("\nThe bull logo has been cropped to a square and fills the icon.")
+    print("iOS/Android will round the corners automatically.")
 
 if __name__ == "__main__":
     main()
