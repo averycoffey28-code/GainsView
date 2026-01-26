@@ -281,14 +281,14 @@ export default function AIPage() {
           <div className="flex items-center gap-3">
             {/* AI Avatar */}
             <div className="relative">
-              <div className="absolute inset-0 blur-lg bg-gold-400/40 rounded-full" />
-              <div className="relative w-10 h-10 rounded-full bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center overflow-hidden">
+              <div className="absolute inset-0 blur-xl bg-gold-400/50 rounded-full scale-125" />
+              <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center overflow-hidden">
                 <Image
                   src="/images/logo.png"
                   alt="GainsView AI"
-                  width={32}
-                  height={32}
-                  className="object-contain"
+                  width={40}
+                  height={40}
+                  className="object-contain drop-shadow-[0_0_10px_rgba(212,175,55,0.4)]"
                 />
               </div>
             </div>
@@ -329,14 +329,14 @@ export default function AIPage() {
               {/* Welcome Message */}
               <div className="text-center mb-8">
                 <div className="relative inline-block mb-6">
-                  <div className="absolute inset-0 blur-3xl bg-gold-400/30 rounded-full scale-150" />
-                  <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-gold-400/20 to-gold-600/20 border border-gold-400/30 flex items-center justify-center mx-auto">
+                  <div className="absolute inset-0 blur-3xl bg-gold-400/40 rounded-full scale-150" />
+                  <div className="relative w-28 h-28 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-gold-400/20 to-gold-600/20 border border-gold-400/30 flex items-center justify-center mx-auto">
                     <Image
                       src="/images/logo.png"
                       alt="GainsView AI"
-                      width={64}
-                      height={64}
-                      className="object-contain"
+                      width={96}
+                      height={96}
+                      className="object-contain drop-shadow-[0_0_20px_rgba(212,175,55,0.5)]"
                     />
                   </div>
                 </div>
@@ -409,13 +409,13 @@ export default function AIPage() {
                   >
                     {message.role === "assistant" && (
                       <div className="flex-shrink-0">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold-400/20 to-gold-600/20 border border-gold-400/30 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold-400/20 to-gold-600/20 border border-gold-400/30 flex items-center justify-center">
                           <Image
                             src="/images/logo.png"
                             alt="AI"
-                            width={20}
-                            height={20}
-                            className="object-contain"
+                            width={28}
+                            height={28}
+                            className="object-contain drop-shadow-[0_0_8px_rgba(212,175,55,0.3)]"
                           />
                         </div>
                       </div>
@@ -497,13 +497,13 @@ export default function AIPage() {
               {/* Loading indicator */}
               {isLoading && (
                 <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold-400/20 to-gold-600/20 border border-gold-400/30 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold-400/20 to-gold-600/20 border border-gold-400/30 flex items-center justify-center">
                     <Image
                       src="/images/logo.png"
                       alt="AI"
-                      width={20}
-                      height={20}
-                      className="object-contain"
+                      width={28}
+                      height={28}
+                      className="object-contain drop-shadow-[0_0_8px_rgba(212,175,55,0.3)]"
                     />
                   </div>
                   <div className="bg-brown-800/80 border border-brown-700/50 px-4 py-3 rounded-2xl rounded-bl-md">

@@ -47,15 +47,15 @@ export default function SignUpPage() {
 
         {/* Top section - Logo and tagline */}
         <div className="relative z-10">
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-5 mb-4">
             <div className="relative">
-              <div className="absolute inset-0 blur-2xl opacity-40 bg-gold-400 rounded-full scale-150" />
+              <div className="absolute inset-0 blur-2xl opacity-50 bg-gold-400 rounded-full scale-150" />
               <Image
                 src="/images/logo.png"
                 alt="GainsView"
-                width={80}
-                height={80}
-                className="relative z-10"
+                width={64}
+                height={64}
+                className="relative z-10 drop-shadow-[0_0_20px_rgba(212,175,55,0.4)]"
                 priority
               />
             </div>
@@ -67,16 +67,16 @@ export default function SignUpPage() {
         </div>
 
         {/* Center section - Hero */}
-        <div className="relative z-10 flex-1 flex flex-col justify-center -mt-20">
-          <div className="mb-8">
+        <div className="relative z-10 flex-1 flex flex-col justify-center -mt-16">
+          <div className="mb-10">
             <div className="relative inline-block">
-              <div className="absolute inset-0 blur-3xl opacity-30 bg-gold-400 rounded-full scale-125" />
+              <div className="absolute inset-0 blur-3xl opacity-50 bg-gold-400 rounded-full scale-150" />
               <Image
                 src="/images/logo.png"
                 alt="GainsView"
-                width={180}
-                height={180}
-                className="relative z-10 drop-shadow-[0_0_40px_rgba(212,184,150,0.3)]"
+                width={220}
+                height={220}
+                className="relative z-10 drop-shadow-[0_0_50px_rgba(212,175,55,0.5)]"
                 priority
               />
             </div>
@@ -137,20 +137,20 @@ export default function SignUpPage() {
       {/* Right Panel - Sign Up Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-4 py-8 sm:p-8 lg:p-12 relative z-10 min-h-screen lg:min-h-0">
         {/* Mobile logo (shown only on mobile) */}
-        <div className="lg:hidden text-center mb-6">
-          <div className="relative inline-block mb-3">
-            <div className="absolute inset-0 blur-2xl opacity-40 bg-gold-400 rounded-full scale-150" />
+        <div className="lg:hidden text-center mb-8">
+          <div className="relative inline-block mb-4">
+            <div className="absolute inset-0 blur-3xl opacity-50 bg-gold-400 rounded-full scale-150" />
             <Image
               src="/images/logo.png"
               alt="GainsView"
-              width={80}
-              height={80}
-              className="relative z-10"
+              width={120}
+              height={120}
+              className="relative z-10 drop-shadow-[0_0_30px_rgba(212,175,55,0.5)]"
               priority
             />
           </div>
-          <h1 className="text-xl font-bold text-brown-50 tracking-tight">GainsView</h1>
-          <p className="text-gold-400 text-xs font-medium mt-1">Premium Options Trading</p>
+          <h1 className="text-2xl font-bold text-brown-50 tracking-tight">GainsView</h1>
+          <p className="text-gold-400 text-sm font-medium mt-1">Premium Options Trading</p>
 
           {/* Mobile social proof */}
           <div className="flex items-center justify-center gap-3 mt-3">

@@ -23,7 +23,7 @@ export default function OfflinePage() {
           transition={{ delay: 0.2, duration: 0.5 }}
           className="mb-6"
         >
-          <Logo size="lg" glow />
+          <Logo size="hero" glow />
         </motion.div>
 
         <motion.div

@@ -86,7 +86,7 @@ export default function PortfolioPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0">
-              <Logo size="sm" glow />
+              <Logo size="medium" glow />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-brown-50">Portfolio</h1>

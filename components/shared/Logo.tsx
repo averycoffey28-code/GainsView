@@ -4,45 +4,50 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface LogoProps {
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "hero" | "large" | "medium" | "small" | "tiny";
   showText?: boolean;
   className?: string;
   glow?: boolean;
   animate?: boolean;
-  priority?: boolean; // Only set priority for above-the-fold logos
+  priority?: boolean;
 }
 
-// Responsive sizes: mobile / desktop
+// Logo size system - PROMINENT and PROUD
 const sizeMap = {
-  sm: { mobile: 56, desktop: 72, text: "text-lg" },       // Page headers
-  md: { mobile: 64, desktop: 88, text: "text-xl" },       // Home page header
-  lg: { mobile: 100, desktop: 140, text: "text-2xl" },    // AI welcome
-  xl: { mobile: 120, desktop: 180, text: "text-3xl" },    // Sign-in hero
+  hero: { mobile: 120, desktop: 200, text: "text-3xl", glowScale: "scale-125", glowBlur: "blur-3xl" },
+  large: { mobile: 80, desktop: 96, text: "text-2xl", glowScale: "scale-115", glowBlur: "blur-2xl" },
+  medium: { mobile: 56, desktop: 64, text: "text-xl", glowScale: "scale-110", glowBlur: "blur-xl" },
+  small: { mobile: 40, desktop: 48, text: "text-lg", glowScale: "scale-110", glowBlur: "blur-lg" },
+  tiny: { mobile: 32, desktop: 32, text: "text-base", glowScale: "scale-105", glowBlur: "blur-md" },
 };
 
 export default function Logo({
-  size = "md",
+  size = "medium",
   showText = false,
   className,
   glow = false,
   animate = false,
   priority = false,
 }: LogoProps) {
-  const { mobile, desktop, text } = sizeMap[size];
+  const { mobile, desktop, text, glowScale, glowBlur } = sizeMap[size];
 
   return (
     <div className={cn("flex flex-col items-center gap-2", className)}>
       <div
         className={cn(
           "relative",
-          glow && "drop-shadow-[0_0_25px_rgba(212,184,150,0.4)]",
+          glow && "drop-shadow-[0_0_30px_rgba(212,175,55,0.4)]",
           animate && "animate-pulse"
         )}
       >
         {/* Gold glow background effect */}
         {glow && (
           <div
-            className="absolute inset-0 blur-2xl opacity-30 bg-gold-400 rounded-full scale-110"
+            className={cn(
+              "absolute inset-0 opacity-40 bg-gold-400 rounded-full",
+              glowBlur,
+              glowScale
+            )}
           />
         )}
         {/* Mobile logo */}

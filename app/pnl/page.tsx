@@ -280,7 +280,7 @@ export default function PnLPage() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
-            <Logo size="sm" glow />
+            <Logo size="medium" glow />
             <div>
               <h1 className="text-2xl font-bold text-brown-50">P&L Tracker</h1>
               <p className="text-brown-400 text-sm">Track your trading performance</p>

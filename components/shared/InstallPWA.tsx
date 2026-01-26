@@ -67,7 +67,7 @@ export default function InstallPWA() {
             <div className="bg-brown-800 border border-brown-700 rounded-2xl p-4 shadow-xl shadow-black/20">
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0 p-2 bg-gold-500/20 rounded-xl">
-                  <Logo size="sm" />
+                  <Logo size="small" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-brown-50 font-semibold text-sm">
@@ -198,7 +198,7 @@ export default function InstallPWA() {
               <div className="px-4 pb-4">
                 <div className="p-3 bg-brown-900/50 rounded-xl flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-brown-800 flex items-center justify-center overflow-hidden">
-                    <Logo size="sm" />
+                    <Logo size="small" />
                   </div>
                   <div>
                     <p className="text-brown-50 font-medium text-sm">

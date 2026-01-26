@@ -185,7 +185,7 @@ export default function Home() {
     return (
       <div className="min-h-full h-full bg-gradient-to-br from-brown-950 via-brown-900 to-brown-950 flex items-center justify-center">
         <div className="text-center">
-          <Logo size="lg" glow animate />
+          <Logo size="hero" glow animate />
           <p className="mt-4 text-brown-400">Loading your dashboard...</p>
         </div>
       </div>
@@ -278,7 +278,7 @@ export default function Home() {
           >
             <div className="flex items-center gap-4">
               <div className="flex-shrink-0">
-                <Logo size="sm" />
+                <Logo size="small" glow />
               </div>
               <div className="text-left">
                 <h2 className="text-lg font-bold text-brown-50">

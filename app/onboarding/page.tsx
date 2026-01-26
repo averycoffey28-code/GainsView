@@ -210,16 +210,16 @@ export default function OnboardingPage() {
                 <div
                   className={cn(
                     "absolute inset-0 blur-3xl bg-gold-400 rounded-full transition-all duration-1000",
-                    showAnimation ? "opacity-50 scale-150" : "opacity-30 scale-125"
+                    showAnimation ? "opacity-60 scale-150" : "opacity-40 scale-125"
                   )}
                 />
                 <Image
                   src="/images/logo.png"
                   alt="GainsView"
-                  width={160}
-                  height={160}
+                  width={180}
+                  height={180}
                   className={cn(
-                    "relative z-10 transition-all duration-1000",
+                    "relative z-10 transition-all duration-1000 drop-shadow-[0_0_40px_rgba(212,175,55,0.5)]",
                     showAnimation ? "scale-110" : "scale-100"
                   )}
                   priority
