@@ -204,12 +204,26 @@ export default function SignInPage() {
                 footerActionLink: "text-gold-400 hover:text-gold-300 font-medium",
                 footerActionText: "text-brown-400 text-sm",
                 identityPreviewEditButton: "text-gold-400 hover:text-gold-300 min-h-[44px] touch-manipulation",
-                formFieldAction: "text-gold-400 hover:text-gold-300 text-sm",
+                formFieldAction: "text-gold-400 hover:text-gold-300 text-sm min-h-[44px] touch-manipulation",
                 alert: "bg-rose-500/10 border-rose-500/30 text-rose-400 rounded-xl text-sm",
+                alertText: "text-rose-400",
+                alertIcon: "text-rose-400",
                 otpCodeFieldInput: "bg-brown-800/60 border-brown-700 text-brown-100 rounded-lg min-h-[48px]",
                 footer: "!bg-transparent",
                 cardBox: "!shadow-none",
                 main: "gap-4",
+                // Password reset flow styles
+                formResendCodeLink: "text-gold-400 hover:text-gold-300 text-sm",
+                formFieldSuccessText: "text-emerald-400 text-sm",
+                formFieldErrorText: "text-rose-400 text-sm",
+                formFieldHintText: "text-brown-500 text-xs",
+                formFieldWarningText: "text-amber-400 text-sm",
+                // Back button in reset flow
+                backLink: "text-gold-400 hover:text-gold-300 text-sm min-h-[44px] touch-manipulation flex items-center gap-1",
+                backIcon: "text-gold-400 w-4 h-4",
+                // Success/info messages
+                alertSuccess: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 rounded-xl text-sm",
+                alertWarning: "bg-amber-500/10 border-amber-500/30 text-amber-400 rounded-xl text-sm",
               },
               layout: {
                 socialButtonsPlacement: "top",
