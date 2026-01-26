@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+// Using llama-3.3-70b-versatile - Groq's latest model
+const GROQ_MODEL = "llama-3.3-70b-versatile";
 
 const SYSTEM_PROMPT = `You are an expert options trading advisor with decades of experience in derivatives markets. Your role is to help traders understand options strategies, analyze positions, and make informed decisions.
 
@@ -42,6 +44,8 @@ interface ChatRequest {
     maxLoss?: string | number;
     targetPnL?: number;
     targetROI?: number;
+    userContext?: string;
+    userName?: string;
   };
 }
 
@@ -59,8 +63,20 @@ export async function POST(request: NextRequest) {
 
     // Build context string if contract details provided
     let contextString = "";
+
+    // Add user context (portfolio, trades) if provided from AI page
+    if (context?.userContext) {
+      contextString += context.userContext;
+    }
+
+    // Add user name for personalization
+    if (context?.userName) {
+      contextString += `\n\nThe user's name is ${context.userName}. Address them by name occasionally.`;
+    }
+
+    // Add calculator position context if provided
     if (context && context.strikePrice) {
-      contextString = `
+      contextString += `
 
 CURRENT POSITION CONTEXT:
 - Symbol: ${context.symbol || "Not specified"}
@@ -89,7 +105,7 @@ Reference these specific details in your response when relevant.`;
         Authorization: `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "llama-3.1-70b-versatile",
+        model: GROQ_MODEL,
         messages: [
           { role: "system", content: systemMessage },
           ...messages,
@@ -100,10 +116,22 @@ Reference these specific details in your response when relevant.`;
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error("Groq API error:", error);
+      const errorText = await response.text();
+      console.error("Groq API error:", response.status, errorText);
+
+      // Parse error for better messaging
+      let errorMessage = "Failed to get response from AI";
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error?.message) {
+          errorMessage = errorJson.error.message;
+        }
+      } catch {
+        // Keep default error message
+      }
+
       return NextResponse.json(
-        { error: "Failed to get response from AI" },
+        { error: errorMessage },
         { status: response.status }
       );
     }

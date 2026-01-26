@@ -187,6 +187,12 @@ export default function AIPage() {
       });
 
       const data = await response.json();
+
+      // Check for API errors
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
       const assistantContent = data.message || "Sorry, I couldn't process that request.";
 
       const assistantId = (Date.now() + 1).toString();
@@ -206,11 +212,12 @@ export default function AIPage() {
       setDisplayedContent("");
       setTypingMessageId(assistantId);
       setIsTyping(true);
-    } catch {
+    } catch (err) {
+      const errorText = err instanceof Error ? err.message : "An error occurred";
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "Sorry, an error occurred. Please try again.",
+        content: `Sorry, ${errorText}. Please check that your GROQ_API_KEY is configured in Vercel environment variables.`,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
