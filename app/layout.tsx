@@ -52,11 +52,18 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icons/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
       { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
     ],
-    shortcut: "/icons/favicon-32x32.png",
-    apple: "/icons/apple-touch-icon.png",
+    shortcut: "/favicon.ico",
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180" },
+      { url: "/apple-touch-icon-152x152.png", sizes: "152x152" },
+      { url: "/apple-touch-icon-120x120.png", sizes: "120x120" },
+    ],
   },
   manifest: "/manifest.json",
   appleWebApp: {
@@ -74,7 +81,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#1a1512",
+  themeColor: "#D4AF37",
 };
 
 // Force dynamic rendering to avoid build-time Clerk initialization
@@ -101,7 +108,11 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="GainsView" />
-        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png" />
+        <link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon-120x120.png" />
+        <meta name="theme-color" content="#D4AF37" />
 
         {/* PWA - Splash screens for iOS */}
         <link
