@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import Logo from "@/components/shared/Logo";
 
 // Placeholder data - will be replaced with Tradier API data
 const mockPositions = [
@@ -79,13 +80,18 @@ export default function PortfolioPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brown-950 via-brown-900 to-brown-950 text-brown-50 p-4 pb-24">
+    <div className="min-h-full bg-gradient-to-br from-brown-950 via-brown-900 to-brown-950 text-brown-50 p-4">
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-brown-50">Portfolio</h1>
-            <p className="text-brown-400 text-sm">Live market data from Tradier</p>
+          <div className="flex items-center gap-4">
+            <div className="flex-shrink-0">
+              <Logo size="sm" glow />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-brown-50">Portfolio</h1>
+              <p className="text-brown-400 text-sm">Live market data from Tradier</p>
+            </div>
           </div>
           <Button
             variant="ghost"

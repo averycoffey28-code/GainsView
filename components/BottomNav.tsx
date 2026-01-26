@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DollarSign, TrendingUp, Home, Brain, Menu } from "lucide-react";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -36,10 +37,18 @@ const navItems = [
 export default function BottomNav() {
   const pathname = usePathname();
 
+  // Hide nav on auth pages and onboarding
+  const hiddenPages = ["/sign-in", "/sign-up", "/login", "/signup", "/onboarding"];
+  const isHiddenPage = hiddenPages.some(page => pathname?.startsWith(page));
+
+  if (isHiddenPage) {
+    return null;
+  }
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50">
+    <nav className="flex-shrink-0 relative">
       {/* Glass effect background */}
-      <div className="absolute inset-0 bg-brown-900/80 backdrop-blur-xl border-t border-brown-700/50" />
+      <div className="absolute inset-0 bg-brown-900/95 backdrop-blur-xl border-t border-brown-700/50" />
 
       {/* Nav content */}
       <div className="relative max-w-lg mx-auto px-2">
@@ -53,42 +62,55 @@ export default function BottomNav() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center justify-center min-w-[64px] py-2 px-3 rounded-xl transition-all duration-200",
+                  "flex flex-col items-center justify-center min-w-[56px] min-h-[56px] py-1 px-2 rounded-xl transition-colors duration-200",
                   isActive
                     ? "text-gold-400"
                     : "text-brown-400 hover:text-brown-200"
                 )}
               >
-                {/* Icon container with active indicator */}
-                <div
+                {/* Icon container with active indicator - 44px min touch target */}
+                <motion.div
                   className={cn(
-                    "relative p-2 rounded-xl transition-all duration-200",
+                    "relative p-2.5 rounded-xl transition-colors duration-200",
                     isActive
                       ? "bg-gold-400/15"
                       : "hover:bg-brown-800/50"
                   )}
+                  whileTap={{
+                    scale: [1, 1.2, 0.9, 1.05, 1],
+                    transition: { duration: 0.3 }
+                  }}
                 >
                   <Icon
                     className={cn(
-                      "w-5 h-5 transition-all duration-200",
-                      isActive && "scale-110"
+                      "w-5 h-5 transition-transform duration-200",
+                      isActive && "scale-110 nav-glow"
                     )}
                   />
                   {/* Active dot indicator */}
                   {isActive && (
-                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-gold-400 rounded-full" />
+                    <motion.span
+                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-gold-400 rounded-full"
+                      layoutId="nav-indicator"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
                   )}
-                </div>
+                </motion.div>
 
                 {/* Label */}
-                <span
+                <motion.span
                   className={cn(
-                    "text-xs font-medium mt-1 transition-all duration-200",
+                    "text-xs font-medium mt-1 transition-colors duration-200",
                     isActive ? "text-gold-400" : "text-brown-500"
                   )}
+                  animate={{
+                    scale: isActive ? 1.05 : 1,
+                    fontWeight: isActive ? 600 : 500,
+                  }}
+                  transition={{ duration: 0.2 }}
                 >
                   {item.label}
-                </span>
+                </motion.span>
               </Link>
             );
           })}

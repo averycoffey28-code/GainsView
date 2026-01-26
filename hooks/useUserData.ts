@@ -1,7 +1,9 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useMemo } from "react";
+import useSWR, { mutate } from "swr";
+import { fetcher, userDataConfig } from "@/lib/swr-config";
 
 // Type definitions
 export interface User {
@@ -72,366 +74,367 @@ export interface UserSettings {
   theme: "dark" | "light";
   default_contracts: number;
   notifications_enabled: boolean;
+  onboarding_completed: boolean;
+  trading_preference: "calls" | "puts" | "both" | null;
+  experience_level: "beginner" | "intermediate" | "advanced" | null;
+  risk_acknowledged: boolean;
   created_at: string;
   updated_at: string;
 }
 
+// Custom fetcher that extracts data from response
+const userFetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to fetch");
+  const json = await res.json();
+  return json.data;
+};
+
 // Hook to get the database user from Clerk
 export function useDbUser() {
   const { user: clerkUser, isLoaded } = useUser();
-  const [dbUser, setDbUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchUser() {
-      if (!isLoaded || !clerkUser) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const res = await fetch("/api/user?type=user");
-        if (res.ok) {
-          const { data } = await res.json();
-          setDbUser(data);
-        }
-      } catch (error) {
-        console.error("Error fetching user:", error);
-      }
-      setLoading(false);
+  const { data: dbUser, isLoading } = useSWR<User>(
+    isLoaded && clerkUser ? "/api/user?type=user" : null,
+    userFetcher,
+    {
+      ...userDataConfig,
+      revalidateOnMount: true,
     }
+  );
 
-    fetchUser();
-  }, [clerkUser, isLoaded]);
-
-  return { user: dbUser, loading, clerkUser };
+  return {
+    user: dbUser || null,
+    loading: !isLoaded || isLoading,
+    clerkUser
+  };
 }
 
 // Hook for positions
 export function usePositions() {
   const { clerkUser } = useDbUser();
-  const [positions, setPositions] = useState<Position[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  const fetchPositions = useCallback(async () => {
-    if (!clerkUser) return;
+  const { data, isLoading, mutate: mutatePositions } = useSWR<Position[]>(
+    clerkUser ? "/api/user?type=positions" : null,
+    userFetcher,
+    userDataConfig
+  );
 
-    setLoading(true);
-    try {
-      const res = await fetch("/api/user?type=positions");
-      if (res.ok) {
-        const { data } = await res.json();
-        setPositions(data || []);
-      }
-    } catch (error) {
-      console.error("Error fetching positions:", error);
-    }
-    setLoading(false);
-  }, [clerkUser]);
+  const positions = useMemo(() => data || [], [data]);
 
-  useEffect(() => {
-    fetchPositions();
-  }, [fetchPositions]);
-
-  const addPosition = async (position: Omit<Position, "id" | "user_id" | "created_at" | "status" | "closed_at" | "close_price" | "realized_pnl">) => {
-    try {
-      const res = await fetch("/api/user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "position", data: position }),
-      });
-      if (res.ok) {
-        const { data } = await res.json();
-        if (data) {
-          setPositions((prev) => [data, ...prev]);
-          return data;
+  const addPosition = useCallback(
+    async (
+      position: Omit<
+        Position,
+        "id" | "user_id" | "created_at" | "status" | "closed_at" | "close_price" | "realized_pnl"
+      >
+    ) => {
+      try {
+        const res = await fetch("/api/user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "position", data: position }),
+        });
+        if (res.ok) {
+          const { data: newPosition } = await res.json();
+          if (newPosition) {
+            // Optimistic update
+            mutatePositions((prev) => [newPosition, ...(prev || [])], false);
+            return newPosition;
+          }
         }
+      } catch (error) {
+        console.error("Error adding position:", error);
       }
-    } catch (error) {
-      console.error("Error adding position:", error);
-    }
-    return null;
-  };
+      return null;
+    },
+    [mutatePositions]
+  );
 
-  const updatePosition = async (id: string, updates: Partial<Position>) => {
-    try {
-      const res = await fetch("/api/user", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "position", id, data: updates }),
-      });
-      if (res.ok) {
-        const { data } = await res.json();
-        if (data) {
-          setPositions((prev) =>
-            prev.map((p) => (p.id === id ? data : p))
-          );
+  const updatePosition = useCallback(
+    async (id: string, updates: Partial<Position>) => {
+      try {
+        const res = await fetch("/api/user", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "position", id, data: updates }),
+        });
+        if (res.ok) {
+          const { data: updatedPosition } = await res.json();
+          if (updatedPosition) {
+            mutatePositions(
+              (prev) => prev?.map((p) => (p.id === id ? updatedPosition : p)),
+              false
+            );
+            return true;
+          }
+        }
+      } catch (error) {
+        console.error("Error updating position:", error);
+      }
+      return false;
+    },
+    [mutatePositions]
+  );
+
+  const deletePosition = useCallback(
+    async (id: string) => {
+      try {
+        const res = await fetch(`/api/user?type=position&id=${id}`, {
+          method: "DELETE",
+        });
+        if (res.ok) {
+          mutatePositions((prev) => prev?.filter((p) => p.id !== id), false);
           return true;
         }
+      } catch (error) {
+        console.error("Error deleting position:", error);
       }
-    } catch (error) {
-      console.error("Error updating position:", error);
-    }
-    return false;
-  };
+      return false;
+    },
+    [mutatePositions]
+  );
 
-  const deletePosition = async (id: string) => {
-    try {
-      const res = await fetch(`/api/user?type=position&id=${id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        setPositions((prev) => prev.filter((p) => p.id !== id));
-        return true;
-      }
-    } catch (error) {
-      console.error("Error deleting position:", error);
-    }
-    return false;
+  return {
+    positions,
+    loading: isLoading,
+    addPosition,
+    updatePosition,
+    deletePosition,
+    refetch: mutatePositions,
   };
-
-  return { positions, loading, addPosition, updatePosition, deletePosition, refetch: fetchPositions };
 }
 
 // Hook for watchlist
 export function useWatchlist() {
   const { clerkUser } = useDbUser();
-  const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  const fetchWatchlist = useCallback(async () => {
-    if (!clerkUser) return;
+  const { data, isLoading, mutate: mutateWatchlist } = useSWR<WatchlistItem[]>(
+    clerkUser ? "/api/user?type=watchlist" : null,
+    userFetcher,
+    userDataConfig
+  );
 
-    setLoading(true);
-    try {
-      const res = await fetch("/api/user?type=watchlist");
-      if (res.ok) {
-        const { data } = await res.json();
-        setWatchlist(data || []);
-      }
-    } catch (error) {
-      console.error("Error fetching watchlist:", error);
-    }
-    setLoading(false);
-  }, [clerkUser]);
+  const watchlist = useMemo(() => data || [], [data]);
 
-  useEffect(() => {
-    fetchWatchlist();
-  }, [fetchWatchlist]);
-
-  const addToWatchlist = async (symbol: string, notes?: string) => {
-    try {
-      const res = await fetch("/api/user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "watchlist", data: { symbol, notes } }),
-      });
-      if (res.ok) {
-        const { data } = await res.json();
-        if (data) {
-          setWatchlist((prev) => [data, ...prev]);
-          return data;
+  const addToWatchlist = useCallback(
+    async (symbol: string, notes?: string) => {
+      try {
+        const res = await fetch("/api/user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "watchlist", data: { symbol, notes } }),
+        });
+        if (res.ok) {
+          const { data: newItem } = await res.json();
+          if (newItem) {
+            mutateWatchlist((prev) => [newItem, ...(prev || [])], false);
+            return newItem;
+          }
         }
+      } catch (error) {
+        console.error("Error adding to watchlist:", error);
       }
-    } catch (error) {
-      console.error("Error adding to watchlist:", error);
-    }
-    return null;
-  };
+      return null;
+    },
+    [mutateWatchlist]
+  );
 
-  const removeFromWatchlist = async (id: string) => {
-    try {
-      const res = await fetch(`/api/user?type=watchlist&id=${id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        setWatchlist((prev) => prev.filter((w) => w.id !== id));
-        return true;
+  const removeFromWatchlist = useCallback(
+    async (id: string) => {
+      try {
+        const res = await fetch(`/api/user?type=watchlist&id=${id}`, {
+          method: "DELETE",
+        });
+        if (res.ok) {
+          mutateWatchlist((prev) => prev?.filter((w) => w.id !== id), false);
+          return true;
+        }
+      } catch (error) {
+        console.error("Error removing from watchlist:", error);
       }
-    } catch (error) {
-      console.error("Error removing from watchlist:", error);
-    }
-    return false;
-  };
+      return false;
+    },
+    [mutateWatchlist]
+  );
 
-  return { watchlist, loading, addToWatchlist, removeFromWatchlist, refetch: fetchWatchlist };
+  return {
+    watchlist,
+    loading: isLoading,
+    addToWatchlist,
+    removeFromWatchlist,
+    refetch: mutateWatchlist,
+  };
 }
 
 // Hook for trades (P&L tracking)
 export function useTrades() {
   const { clerkUser } = useDbUser();
-  const [trades, setTrades] = useState<Trade[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  const fetchTrades = useCallback(async () => {
-    if (!clerkUser) return;
+  const { data, isLoading, mutate: mutateTrades } = useSWR<Trade[]>(
+    clerkUser ? "/api/user?type=trades" : null,
+    userFetcher,
+    userDataConfig
+  );
 
-    setLoading(true);
-    try {
-      const res = await fetch("/api/user?type=trades");
-      if (res.ok) {
-        const { data } = await res.json();
-        setTrades(data || []);
-      }
-    } catch (error) {
-      console.error("Error fetching trades:", error);
-    }
-    setLoading(false);
-  }, [clerkUser]);
+  const trades = useMemo(() => data || [], [data]);
+  const totalPnL = useMemo(
+    () => trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0),
+    [trades]
+  );
 
-  useEffect(() => {
-    fetchTrades();
-  }, [fetchTrades]);
-
-  const addTrade = async (trade: Omit<Trade, "id" | "user_id" | "created_at">) => {
-    try {
-      const res = await fetch("/api/user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "trade", data: trade }),
-      });
-      if (res.ok) {
-        const { data } = await res.json();
-        if (data) {
-          setTrades((prev) => [data, ...prev]);
-          return data;
+  const addTrade = useCallback(
+    async (trade: Omit<Trade, "id" | "user_id" | "created_at">) => {
+      try {
+        const res = await fetch("/api/user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "trade", data: trade }),
+        });
+        if (res.ok) {
+          const { data: newTrade } = await res.json();
+          if (newTrade) {
+            mutateTrades((prev) => [newTrade, ...(prev || [])], false);
+            return newTrade;
+          }
         }
+      } catch (error) {
+        console.error("Error adding trade:", error);
       }
-    } catch (error) {
-      console.error("Error adding trade:", error);
-    }
-    return null;
-  };
+      return null;
+    },
+    [mutateTrades]
+  );
 
-  const deleteTrade = async (id: string) => {
-    try {
-      const res = await fetch(`/api/user?type=trade&id=${id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        setTrades((prev) => prev.filter((t) => t.id !== id));
-        return true;
+  const deleteTrade = useCallback(
+    async (id: string) => {
+      try {
+        const res = await fetch(`/api/user?type=trade&id=${id}`, {
+          method: "DELETE",
+        });
+        if (res.ok) {
+          mutateTrades((prev) => prev?.filter((t) => t.id !== id), false);
+          return true;
+        }
+      } catch (error) {
+        console.error("Error deleting trade:", error);
       }
-    } catch (error) {
-      console.error("Error deleting trade:", error);
-    }
-    return false;
+      return false;
+    },
+    [mutateTrades]
+  );
+
+  return {
+    trades,
+    loading: isLoading,
+    addTrade,
+    deleteTrade,
+    totalPnL,
+    refetch: mutateTrades,
   };
-
-  const totalPnL = trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0);
-
-  return { trades, loading, addTrade, deleteTrade, totalPnL, refetch: fetchTrades };
 }
 
 // Hook for chat history
 export function useChatHistory() {
   const { clerkUser } = useDbUser();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  const fetchMessages = useCallback(async () => {
-    if (!clerkUser) return;
-
-    setLoading(true);
-    try {
-      const res = await fetch("/api/user?type=chat");
-      if (res.ok) {
-        const { data } = await res.json();
-        setMessages(data || []);
-      }
-    } catch (error) {
-      console.error("Error fetching chat:", error);
+  const { data, isLoading, mutate: mutateChat } = useSWR<ChatMessage[]>(
+    clerkUser ? "/api/user?type=chat" : null,
+    userFetcher,
+    {
+      ...userDataConfig,
+      refreshInterval: 0, // Don't auto-refresh chat
     }
-    setLoading(false);
-  }, [clerkUser]);
+  );
 
-  useEffect(() => {
-    fetchMessages();
-  }, [fetchMessages]);
+  const messages = useMemo(() => data || [], [data]);
 
-  const addMessage = async (role: "user" | "assistant", content: string) => {
-    try {
-      const res = await fetch("/api/user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "chat", data: { role, content } }),
-      });
-      if (res.ok) {
-        const { data } = await res.json();
-        if (data) {
-          setMessages((prev) => [...prev, data]);
-          return data;
+  const addMessage = useCallback(
+    async (role: "user" | "assistant", content: string) => {
+      try {
+        const res = await fetch("/api/user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "chat", data: { role, content } }),
+        });
+        if (res.ok) {
+          const { data: newMessage } = await res.json();
+          if (newMessage) {
+            mutateChat((prev) => [...(prev || []), newMessage], false);
+            return newMessage;
+          }
         }
+      } catch (error) {
+        console.error("Error adding message:", error);
       }
-    } catch (error) {
-      console.error("Error adding message:", error);
-    }
-    return null;
-  };
+      return null;
+    },
+    [mutateChat]
+  );
 
-  const clearHistory = async () => {
+  const clearHistory = useCallback(async () => {
     try {
       const res = await fetch(`/api/user?type=chat`, {
         method: "DELETE",
       });
       if (res.ok) {
-        setMessages([]);
+        mutateChat([], false);
         return true;
       }
     } catch (error) {
       console.error("Error clearing chat:", error);
     }
     return false;
-  };
+  }, [mutateChat]);
 
-  return { messages, loading, addMessage, clearHistory, refetch: fetchMessages };
+  return {
+    messages,
+    loading: isLoading,
+    addMessage,
+    clearHistory,
+    refetch: mutateChat,
+  };
 }
 
 // Hook for user settings
 export function useUserSettings() {
   const { clerkUser } = useDbUser();
-  const [settings, setSettings] = useState<UserSettings | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchSettings() {
-      if (!clerkUser) return;
+  const { data, isLoading, mutate: mutateSettings } = useSWR<UserSettings>(
+    clerkUser ? "/api/user?type=settings" : null,
+    userFetcher,
+    userDataConfig
+  );
 
-      setLoading(true);
+  const updateSettings = useCallback(
+    async (updates: Partial<UserSettings>) => {
       try {
-        const res = await fetch("/api/user?type=settings");
+        const res = await fetch("/api/user", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "settings", data: updates }),
+        });
         if (res.ok) {
-          const { data } = await res.json();
-          setSettings(data);
+          const { data: updatedSettings } = await res.json();
+          if (updatedSettings) {
+            mutateSettings(updatedSettings, false);
+            return true;
+          }
         }
       } catch (error) {
-        console.error("Error fetching settings:", error);
+        console.error("Error updating settings:", error);
       }
-      setLoading(false);
-    }
+      return false;
+    },
+    [mutateSettings]
+  );
 
-    fetchSettings();
-  }, [clerkUser]);
-
-  const updateSettings = async (updates: Partial<UserSettings>) => {
-    try {
-      const res = await fetch("/api/user", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "settings", data: updates }),
-      });
-      if (res.ok) {
-        const { data } = await res.json();
-        if (data) {
-          setSettings(data);
-          return true;
-        }
-      }
-    } catch (error) {
-      console.error("Error updating settings:", error);
-    }
-    return false;
+  return {
+    settings: data || null,
+    loading: isLoading,
+    updateSettings,
   };
-
-  return { settings, loading, updateSettings };
 }
+
+// Alias for backward compatibility
+export const useSupabaseUser = useDbUser;

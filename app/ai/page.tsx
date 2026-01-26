@@ -1,77 +1,233 @@
 "use client";
 
-import { useState } from "react";
-import { Brain, Send, Sparkles, MessageSquare, TrendingUp, Shield, Lightbulb } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { useUser } from "@clerk/nextjs";
+import Image from "next/image";
+import {
+  Send,
+  TrendingUp,
+  Lightbulb,
+  Calculator,
+  Briefcase,
+  Copy,
+  Check,
+  RefreshCw,
+  Trash2,
+  Sparkles,
+  Shield,
+  ChevronRight,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
+import { usePositions, useTrades, useChatHistory } from "@/hooks/useUserData";
+import { cn } from "@/lib/utils";
 
 interface Message {
+  id: string;
   role: "user" | "assistant";
   content: string;
+  timestamp: Date;
 }
 
-const quickPrompts = [
+const suggestedPrompts = [
+  {
+    icon: Lightbulb,
+    label: "Explain call options",
+    prompt: "Explain call options to me like I'm a beginner. What are they and how do they work?",
+  },
   {
     icon: TrendingUp,
-    label: "Market Analysis",
-    prompt: "What's your analysis of the current market conditions? Any sectors looking promising?",
+    label: "Analyze my portfolio",
+    prompt: "Analyze my current portfolio positions and give me insights on my risk exposure.",
+  },
+  {
+    icon: Calculator,
+    label: "Calculate risk",
+    prompt: "Help me calculate the risk-reward ratio for a potential trade. What factors should I consider?",
   },
   {
     icon: Shield,
-    label: "Risk Management",
+    label: "Risk management",
     prompt: "What are the best risk management strategies for options trading?",
   },
+];
+
+const contextActions = [
   {
-    icon: Lightbulb,
-    label: "Strategy Ideas",
-    prompt: "Can you suggest some options strategies for generating income in a sideways market?",
+    icon: Briefcase,
+    label: "Analyze my portfolio",
+    description: "Get AI insights on your positions",
   },
   {
-    icon: MessageSquare,
-    label: "Explain Greeks",
-    prompt: "Explain the option Greeks (Delta, Gamma, Theta, Vega) and how they affect my trades.",
+    icon: Calculator,
+    label: "Explain my last calculation",
+    description: "Understand your recent P&L analysis",
   },
 ];
 
 export default function AIPage() {
+  const { user } = useUser();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { positions } = usePositions();
+  const { trades, totalPnL } = useTrades();
+  const { messages: savedMessages, addMessage, clearHistory } = useChatHistory();
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [displayedContent, setDisplayedContent] = useState("");
+  const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
 
-  const sendMessage = async (content: string) => {
+  const firstName = user?.firstName || "Trader";
+
+  // Load saved messages on mount
+  useEffect(() => {
+    if (savedMessages.length > 0) {
+      const loadedMessages = savedMessages.map((m) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        timestamp: new Date(m.created_at),
+      }));
+      setMessages(loadedMessages);
+    }
+  }, [savedMessages]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, displayedContent]);
+
+  // Typing animation effect
+  useEffect(() => {
+    if (!isTyping || !typingMessageId) return;
+
+    const message = messages.find((m) => m.id === typingMessageId);
+    if (!message) return;
+
+    const fullContent = message.content;
+    let currentIndex = 0;
+
+    const typeInterval = setInterval(() => {
+      if (currentIndex < fullContent.length) {
+        setDisplayedContent(fullContent.slice(0, currentIndex + 1));
+        currentIndex++;
+      } else {
+        setIsTyping(false);
+        setTypingMessageId(null);
+        clearInterval(typeInterval);
+      }
+    }, 10);
+
+    return () => clearInterval(typeInterval);
+  }, [isTyping, typingMessageId, messages]);
+
+  const buildContextString = () => {
+    let context = "";
+
+    if (positions.length > 0) {
+      const openPositions = positions.filter((p) => p.status === "open");
+      context += `\n\nUser's open positions (${openPositions.length}):\n`;
+      openPositions.forEach((p) => {
+        context += `- ${p.symbol}: ${p.position_type} ${p.contract_type} @ $${p.strike_price}, ${p.contracts} contracts\n`;
+      });
+    }
+
+    if (trades.length > 0) {
+      context += `\n\nUser's trading stats:\n`;
+      context += `- Total P&L: $${totalPnL}\n`;
+      context += `- Total trades: ${trades.length}\n`;
+      const wins = trades.filter((t) => (t.pnl || 0) > 0).length;
+      context += `- Win rate: ${((wins / trades.length) * 100).toFixed(0)}%\n`;
+    }
+
+    return context;
+  };
+
+  const sendMessage = async (content: string, includeContext = false) => {
     if (!content.trim() || isLoading) return;
 
-    const userMessage: Message = { role: "user", content: content.trim() };
+    const messageId = Date.now().toString();
+    const userMessage: Message = {
+      id: messageId,
+      role: "user",
+      content: content.trim(),
+      timestamp: new Date(),
+    };
+
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
 
+    // Save user message
+    await addMessage("user", content.trim());
+
     try {
+      let contextString = "";
+      if (includeContext) {
+        contextString = buildContextString();
+      }
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...messages, userMessage],
-          context: {},
+          messages: [...messages, userMessage].map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+          context: {
+            userContext: contextString,
+            userName: firstName,
+          },
         }),
       });
 
       const data = await response.json();
+      const assistantContent = data.message || "Sorry, I couldn't process that request.";
 
+      const assistantId = (Date.now() + 1).toString();
       const assistantMessage: Message = {
+        id: assistantId,
         role: "assistant",
-        content: data.message || "Sorry, I couldn't process that request.",
+        content: assistantContent,
+        timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Save assistant message
+      await addMessage("assistant", assistantContent);
+
+      // Start typing animation
+      setDisplayedContent("");
+      setTypingMessageId(assistantId);
+      setIsTyping(true);
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Sorry, an error occurred. Please try again." },
-      ]);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "Sorry, an error occurred. Please try again.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleContextAction = (action: string) => {
+    if (action === "Analyze my portfolio") {
+      const prompt = `Please analyze my current portfolio and trading performance. Give me insights on my positions, risk exposure, and suggestions for improvement.`;
+      sendMessage(prompt, true);
+    } else if (action === "Explain my last calculation") {
+      sendMessage(
+        "Explain how options P&L calculations work, including break-even points, max profit, and max loss scenarios.",
+        false
+      );
     }
   };
 
@@ -82,56 +238,156 @@ export default function AIPage() {
     }
   };
 
+  const copyMessage = (id: string, content: string) => {
+    navigator.clipboard.writeText(content);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const regenerateResponse = async () => {
+    if (messages.length < 2) return;
+
+    // Find the last user message
+    const lastUserIndex = [...messages].reverse().findIndex((m) => m.role === "user");
+    if (lastUserIndex === -1) return;
+
+    const lastUserMessage = messages[messages.length - 1 - lastUserIndex];
+
+    // Remove the last assistant message
+    setMessages((prev) => prev.slice(0, -1));
+
+    // Resend
+    await sendMessage(lastUserMessage.content);
+  };
+
+  const handleClearChat = async () => {
+    await clearHistory();
+    setMessages([]);
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brown-950 via-brown-900 to-brown-950 text-brown-50 flex flex-col">
+    <div className="h-full bg-gradient-to-br from-brown-950 via-brown-900 to-brown-950 text-brown-50 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-brown-800">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <div className="p-2 bg-gold-400/20 rounded-xl">
-            <Brain className="w-6 h-6 text-gold-400" />
+      <div className="flex-shrink-0 px-4 py-3 border-b border-brown-800/50 bg-brown-900/50 backdrop-blur-xl">
+        <div className="max-w-3xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* AI Avatar */}
+            <div className="relative">
+              <div className="absolute inset-0 blur-lg bg-gold-400/40 rounded-full" />
+              <div className="relative w-10 h-10 rounded-full bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center overflow-hidden">
+                <Image
+                  src="/images/logo.png"
+                  alt="GainsView AI"
+                  width={32}
+                  height={32}
+                  className="object-contain"
+                />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="font-semibold text-brown-50">GainsView AI</h1>
+                <span className="px-2 py-0.5 text-[10px] font-medium bg-gold-400/20 text-gold-400 rounded-full">
+                  Powered by AI
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                <span className="text-xs text-emerald-400">Online</span>
+              </div>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-brown-50">AI Trading Assistant</h1>
-            <p className="text-xs text-brown-400">Powered by Llama 3.1 70B</p>
-          </div>
+
+          {/* Clear Chat */}
+          {messages.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearChat}
+              className="text-brown-400 hover:text-red-400"
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Clear
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 pb-32">
-        <div className="max-w-2xl mx-auto space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 py-6">
+        <div className="max-w-3xl mx-auto space-y-6">
           {messages.length === 0 ? (
             <div className="py-8">
               {/* Welcome Message */}
               <div className="text-center mb-8">
-                <div className="inline-flex p-4 bg-gold-400/10 rounded-2xl mb-4">
-                  <Sparkles className="w-10 h-10 text-gold-400" />
+                <div className="relative inline-block mb-6">
+                  <div className="absolute inset-0 blur-3xl bg-gold-400/30 rounded-full scale-150" />
+                  <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-gold-400/20 to-gold-600/20 border border-gold-400/30 flex items-center justify-center mx-auto">
+                    <Image
+                      src="/images/logo.png"
+                      alt="GainsView AI"
+                      width={64}
+                      height={64}
+                      className="object-contain"
+                    />
+                  </div>
                 </div>
-                <h2 className="text-2xl font-bold text-brown-100 mb-2">
-                  How can I help you today?
+                <h2 className="text-2xl font-bold text-brown-50 mb-2">
+                  Hi {firstName}, I&apos;m your AI trading assistant.
                 </h2>
                 <p className="text-brown-400 max-w-md mx-auto">
-                  Ask me about options strategies, market analysis, risk management, or anything trading-related.
+                  Ask me anything about options trading, market analysis, or get personalized insights on your portfolio.
                 </p>
               </div>
 
-              {/* Quick Prompts */}
+              {/* Context Actions */}
+              <div className="flex flex-wrap justify-center gap-3 mb-8">
+                {contextActions.map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <button
+                      key={action.label}
+                      type="button"
+                      onClick={() => handleContextAction(action.label)}
+                      className="flex items-center gap-2 px-4 py-2 bg-gold-400/10 hover:bg-gold-400/20 border border-gold-400/30 rounded-full text-gold-400 text-sm font-medium transition-colors"
+                    >
+                      <Icon className="w-4 h-4" />
+                      {action.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Suggested Prompts */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {quickPrompts.map((prompt) => {
+                {suggestedPrompts.map((prompt) => {
                   const Icon = prompt.icon;
                   return (
                     <button
                       key={prompt.label}
+                      type="button"
                       onClick={() => sendMessage(prompt.prompt)}
-                      className="p-4 text-left bg-brown-800/50 hover:bg-brown-800 border border-brown-700 rounded-xl transition-colors group"
+                      className="p-4 text-left bg-brown-800/30 hover:bg-brown-800/50 border border-brown-700/50 hover:border-gold-400/30 rounded-xl transition-all group"
                     >
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-brown-700/50 rounded-lg group-hover:bg-gold-400/20 transition-colors">
-                          <Icon className="w-4 h-4 text-brown-400 group-hover:text-gold-400 transition-colors" />
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-brown-700/50 group-hover:bg-gold-400/20 rounded-lg transition-colors">
+                            <Icon className="w-4 h-4 text-brown-400 group-hover:text-gold-400 transition-colors" />
+                          </div>
+                          <span className="font-medium text-brown-200 group-hover:text-gold-400 transition-colors">
+                            {prompt.label}
+                          </span>
                         </div>
-                        <span className="font-medium text-brown-200">{prompt.label}</span>
+                        <ChevronRight className="w-4 h-4 text-brown-600 group-hover:text-gold-400 transition-colors" />
                       </div>
-                      <p className="text-sm text-brown-500 line-clamp-2">{prompt.prompt}</p>
                     </button>
                   );
                 })}
@@ -139,31 +395,118 @@ export default function AIPage() {
             </div>
           ) : (
             <>
-              {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-                >
+              {messages.map((message, index) => {
+                const isTypingThis = isTyping && typingMessageId === message.id;
+                const content = isTypingThis ? displayedContent : message.content;
+
+                return (
                   <div
-                    className={`max-w-[85%] p-4 rounded-2xl ${
-                      message.role === "user"
-                        ? "bg-gold-500 text-brown-900"
-                        : "bg-brown-800 text-brown-100"
-                    }`}
+                    key={message.id}
+                    className={cn(
+                      "flex gap-3",
+                      message.role === "user" ? "justify-end" : "justify-start"
+                    )}
                   >
                     {message.role === "assistant" && (
-                      <div className="flex items-center gap-2 mb-2">
-                        <Brain className="w-4 h-4 text-gold-400" />
-                        <span className="text-xs text-gold-400 font-medium">AI Assistant</span>
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold-400/20 to-gold-600/20 border border-gold-400/30 flex items-center justify-center">
+                          <Image
+                            src="/images/logo.png"
+                            alt="AI"
+                            width={20}
+                            height={20}
+                            className="object-contain"
+                          />
+                        </div>
                       </div>
                     )}
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+
+                    <div
+                      className={cn(
+                        "max-w-[80%] group",
+                        message.role === "user" ? "order-first" : ""
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "px-4 py-3 rounded-2xl",
+                          message.role === "user"
+                            ? "bg-gold-500 text-brown-900 rounded-br-md"
+                            : "bg-brown-800/80 text-brown-100 border border-brown-700/50 rounded-bl-md"
+                        )}
+                      >
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                          {content}
+                          {isTypingThis && (
+                            <span className="inline-block w-1 h-4 ml-0.5 bg-gold-400 animate-pulse" />
+                          )}
+                        </p>
+                      </div>
+
+                      {/* Message Actions */}
+                      <div
+                        className={cn(
+                          "flex items-center gap-2 mt-1 px-1",
+                          message.role === "user" ? "justify-end" : "justify-start"
+                        )}
+                      >
+                        <span className="text-[10px] text-brown-600">
+                          {formatTime(message.timestamp)}
+                        </span>
+
+                        {message.role === "assistant" && !isTypingThis && (
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              type="button"
+                              onClick={() => copyMessage(message.id, message.content)}
+                              className="p-1 text-brown-500 hover:text-gold-400 transition-colors"
+                              title="Copy"
+                            >
+                              {copiedId === message.id ? (
+                                <Check className="w-3 h-3" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                            {index === messages.length - 1 && (
+                              <button
+                                type="button"
+                                onClick={regenerateResponse}
+                                className="p-1 text-brown-500 hover:text-gold-400 transition-colors"
+                                title="Regenerate"
+                              >
+                                <RefreshCw className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {message.role === "user" && (
+                      <div className="flex-shrink-0 order-last">
+                        <div className="w-8 h-8 rounded-full bg-gold-500 flex items-center justify-center text-brown-900 font-semibold text-sm">
+                          {firstName[0]}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
+
+              {/* Loading indicator */}
               {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-brown-800 text-brown-100 p-4 rounded-2xl">
+                <div className="flex gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold-400/20 to-gold-600/20 border border-gold-400/30 flex items-center justify-center">
+                    <Image
+                      src="/images/logo.png"
+                      alt="AI"
+                      width={20}
+                      height={20}
+                      className="object-contain"
+                    />
+                  </div>
+                  <div className="bg-brown-800/80 border border-brown-700/50 px-4 py-3 rounded-2xl rounded-bl-md">
                     <div className="flex items-center gap-2">
                       <div className="flex gap-1">
                         <span className="w-2 h-2 bg-gold-400 rounded-full animate-bounce" />
@@ -181,35 +524,48 @@ export default function AIPage() {
                   </div>
                 </div>
               )}
+
+              <div ref={messagesEndRef} />
             </>
           )}
         </div>
       </div>
 
-      {/* Input Area - Fixed at bottom */}
-      <div className="fixed bottom-16 left-0 right-0 p-4 bg-gradient-to-t from-brown-950 via-brown-950 to-transparent">
-        <div className="max-w-2xl mx-auto">
-          <Card className="bg-brown-800/90 backdrop-blur-xl border-brown-700">
-            <CardContent className="p-3">
-              <div className="flex gap-2">
-                <Textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Ask anything about trading..."
-                  className="min-h-[44px] max-h-[120px] bg-brown-900/50 border-brown-700 text-brown-100 placeholder:text-brown-500 resize-none"
-                  rows={1}
-                />
-                <Button
-                  onClick={() => sendMessage(input)}
-                  disabled={!input.trim() || isLoading}
-                  className="bg-gold-500 hover:bg-gold-600 text-brown-900 px-4"
-                >
+      {/* Input Area */}
+      <div className="flex-shrink-0 p-4 border-t border-brown-800/50 bg-brown-900/50 backdrop-blur-xl">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex gap-2 items-end">
+            <div className="flex-1 relative">
+              <Textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask anything about trading..."
+                className="min-h-[48px] max-h-[120px] pr-12 bg-brown-800/50 border-brown-700 text-brown-100 placeholder:text-brown-500 resize-none rounded-xl"
+                rows={1}
+              />
+              <Button
+                type="button"
+                onClick={() => sendMessage(input)}
+                disabled={!input.trim() || isLoading}
+                className="absolute right-2 bottom-2 h-8 w-8 p-0 bg-gold-500 hover:bg-gold-600 text-brown-900 rounded-lg disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
                   <Send className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Disclaimer */}
+          <div className="flex items-center justify-center gap-2 mt-3">
+            <Sparkles className="w-3 h-3 text-brown-600" />
+            <p className="text-[10px] text-brown-600 text-center">
+              AI responses are for educational purposes only. Not financial advice.
+            </p>
+          </div>
         </div>
       </div>
     </div>

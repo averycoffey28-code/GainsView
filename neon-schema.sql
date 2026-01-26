@@ -76,9 +76,19 @@ CREATE TABLE IF NOT EXISTS user_settings (
   theme TEXT DEFAULT 'dark' CHECK (theme IN ('dark', 'light')),
   default_contracts INTEGER DEFAULT 1,
   notifications_enabled BOOLEAN DEFAULT true,
+  onboarding_completed BOOLEAN DEFAULT false,
+  trading_preference TEXT CHECK (trading_preference IN ('calls', 'puts', 'both')),
+  experience_level TEXT CHECK (experience_level IN ('beginner', 'intermediate', 'advanced')),
+  risk_acknowledged BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migration: Add onboarding columns if they don't exist
+-- ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT false;
+-- ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS trading_preference TEXT;
+-- ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS experience_level TEXT;
+-- ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS risk_acknowledged BOOLEAN DEFAULT false;
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS positions_user_id_idx ON positions(user_id);
