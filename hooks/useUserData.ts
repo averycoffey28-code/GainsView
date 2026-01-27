@@ -267,6 +267,13 @@ export function useWatchlist() {
   };
 }
 
+// Helper to parse numeric values from database (handles string/number/null)
+const parseNumeric = (value: number | string | null | undefined): number => {
+  if (value === null || value === undefined) return 0;
+  const parsed = typeof value === 'string' ? parseFloat(value) : value;
+  return isNaN(parsed) ? 0 : parsed;
+};
+
 // Hook for trades (P&L tracking)
 export function useTrades() {
   const { clerkUser } = useDbUser();
@@ -277,9 +284,20 @@ export function useTrades() {
     userDataConfig
   );
 
-  const trades = useMemo(() => data || [], [data]);
+  // Normalize trades to ensure numeric values are properly parsed
+  const trades = useMemo(() => {
+    if (!data) return [];
+    return data.map(trade => ({
+      ...trade,
+      pnl: parseNumeric(trade.pnl),
+      price: parseNumeric(trade.price),
+      quantity: parseNumeric(trade.quantity),
+      total_value: parseNumeric(trade.total_value),
+    }));
+  }, [data]);
+
   const totalPnL = useMemo(
-    () => trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0),
+    () => Math.round(trades.reduce((sum, trade) => sum + (trade.pnl || 0), 0) * 100) / 100,
     [trades]
   );
 

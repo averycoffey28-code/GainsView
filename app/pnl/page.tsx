@@ -64,6 +64,13 @@ export default function PnLPage() {
     notes: "",
   });
 
+  // Helper to safely parse P&L (handles string/number/null from database)
+  const parsePnL = (value: number | string | null | undefined): number => {
+    if (value === null || value === undefined) return 0;
+    const parsed = typeof value === 'string' ? parseFloat(value) : value;
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
   // Calculate stats
   const stats = useMemo(() => {
     if (!trades.length) {
@@ -81,24 +88,24 @@ export default function PnLPage() {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const totalPnL = trades.reduce((sum, t) => sum + (t.pnl || 0), 0);
+    const totalPnL = trades.reduce((sum, t) => sum + parsePnL(t.pnl), 0);
     const monthTrades = trades.filter(
       (t) => new Date(t.trade_date) >= monthStart
     );
-    const monthPnL = monthTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
+    const monthPnL = monthTrades.reduce((sum, t) => sum + parsePnL(t.pnl), 0);
 
-    const wins = trades.filter((t) => (t.pnl || 0) > 0);
-    const losses = trades.filter((t) => (t.pnl || 0) < 0);
+    const wins = trades.filter((t) => parsePnL(t.pnl) > 0);
+    const losses = trades.filter((t) => parsePnL(t.pnl) < 0);
     const winRate = trades.length > 0 ? (wins.length / trades.length) * 100 : 0;
-    const avgWin = wins.length > 0 ? wins.reduce((s, t) => s + (t.pnl || 0), 0) / wins.length : 0;
-    const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((s, t) => s + (t.pnl || 0), 0) / losses.length) : 0;
+    const avgWin = wins.length > 0 ? wins.reduce((s, t) => s + parsePnL(t.pnl), 0) / wins.length : 0;
+    const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((s, t) => s + parsePnL(t.pnl), 0) / losses.length) : 0;
 
     return {
-      totalPnL,
-      monthPnL,
+      totalPnL: Math.round(totalPnL * 100) / 100,
+      monthPnL: Math.round(monthPnL * 100) / 100,
       winRate,
-      avgWin,
-      avgLoss,
+      avgWin: Math.round(avgWin * 100) / 100,
+      avgLoss: Math.round(avgLoss * 100) / 100,
       winCount: wins.length,
       lossCount: losses.length,
     };
@@ -119,22 +126,23 @@ export default function PnLPage() {
       filteredTrades = trades.filter((t) => new Date(t.trade_date) >= monthAgo);
     }
 
-    // Sort by date ascending
+    // Sort by date ascending for proper cumulative calculation
     filteredTrades.sort(
       (a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime()
     );
 
-    // Calculate cumulative P&L
+    // Calculate cumulative P&L with proper parsing
     let cumulative = 0;
     return filteredTrades.map((trade) => {
-      cumulative += trade.pnl || 0;
+      const tradePnL = parsePnL(trade.pnl);
+      cumulative += tradePnL;
       return {
         date: new Date(trade.trade_date).toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
         }),
-        pnl: cumulative,
-        dailyPnl: trade.pnl || 0,
+        pnl: Math.round(cumulative * 100) / 100,
+        dailyPnl: tradePnL,
       };
     });
   }, [trades, chartRange]);
@@ -144,7 +152,7 @@ export default function PnLPage() {
     const days: Record<string, number> = {};
     trades.forEach((trade) => {
       const date = trade.trade_date.split("T")[0];
-      days[date] = (days[date] || 0) + (trade.pnl || 0);
+      days[date] = (days[date] || 0) + parsePnL(trade.pnl);
     });
     return days;
   }, [trades]);
@@ -161,7 +169,7 @@ export default function PnLPage() {
           comparison = a.symbol.localeCompare(b.symbol);
           break;
         case "pnl":
-          comparison = (a.pnl || 0) - (b.pnl || 0);
+          comparison = parsePnL(a.pnl) - parsePnL(b.pnl);
           break;
         case "asset_type":
           comparison = a.asset_type.localeCompare(b.asset_type);
@@ -197,18 +205,24 @@ export default function PnLPage() {
     const quantity = parseInt(formData.quantity) || 0;
     const fees = parseFloat(formData.fees) || 0;
 
-    // Calculate P&L
+    // Validate inputs
+    if (isNaN(entryPrice) || isNaN(exitPrice) || isNaN(quantity) || quantity <= 0) {
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Calculate P&L with proper rounding
     const multiplier = formData.asset_type === "stock" ? 1 : 100;
     const grossPnL = (exitPrice - entryPrice) * quantity * multiplier;
-    const netPnL = grossPnL - fees;
+    const netPnL = Math.round((grossPnL - fees) * 100) / 100;
 
     await addTrade({
       symbol: formData.symbol.toUpperCase(),
       trade_type: formData.trade_type,
       asset_type: formData.asset_type,
       quantity,
-      price: exitPrice,
-      total_value: exitPrice * quantity * multiplier,
+      price: Math.round(exitPrice * 100) / 100,
+      total_value: Math.round(exitPrice * quantity * multiplier * 100) / 100,
       pnl: netPnL,
       notes: formData.notes || null,
       trade_date: formData.date,
@@ -341,7 +355,10 @@ export default function PnLPage() {
                   stats.totalPnL >= 0 ? "text-emerald-400" : "text-red-400"
                 )}
               >
-                {stats.totalPnL >= 0 ? "+" : ""}${stats.totalPnL.toLocaleString()}
+                {stats.totalPnL >= 0 ? "+" : ""}${Math.abs(stats.totalPnL).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </p>
             </CardContent>
           </Card>
@@ -359,7 +376,10 @@ export default function PnLPage() {
                   stats.monthPnL >= 0 ? "text-emerald-400" : "text-red-400"
                 )}
               >
-                {stats.monthPnL >= 0 ? "+" : ""}${stats.monthPnL.toLocaleString()}
+                {stats.monthPnL >= 0 ? "+" : ""}${Math.abs(stats.monthPnL).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </p>
             </CardContent>
           </Card>
@@ -615,11 +635,14 @@ export default function PnLPage() {
                       <span
                         className={cn(
                           "font-semibold",
-                          (trade.pnl || 0) >= 0 ? "text-emerald-400" : "text-red-400"
+                          parsePnL(trade.pnl) >= 0 ? "text-emerald-400" : "text-red-400"
                         )}
                       >
-                        {(trade.pnl || 0) >= 0 ? "+" : ""}$
-                        {Math.abs(trade.pnl || 0).toLocaleString()}
+                        {parsePnL(trade.pnl) >= 0 ? "+" : ""}$
+                        {Math.abs(parsePnL(trade.pnl)).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </span>
                     </div>
                     <div className="col-span-2 text-xs text-brown-500 truncate">
