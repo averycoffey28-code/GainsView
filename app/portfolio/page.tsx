@@ -17,8 +17,6 @@ import {
   Activity,
 } from "lucide-react";
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   Tooltip,
@@ -30,7 +28,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Logo from "@/components/shared/Logo";
-import { useWatchlist, WatchlistItem } from "@/hooks/useUserData";
+import { useWatchlist } from "@/hooks/useUserData";
 import { cn } from "@/lib/utils";
 
 interface SearchResult {
