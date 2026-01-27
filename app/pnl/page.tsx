@@ -8,6 +8,7 @@ import {
   Calendar,
   Trash2,
   Download,
+  Upload,
   ChevronUp,
   ChevronDown,
   X,
@@ -31,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Logo from "@/components/shared/Logo";
+import ImportTradesModal from "@/components/ImportTradesModal";
 import { useTrades, Trade } from "@/hooks/useUserData";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +43,7 @@ type ChartRange = "week" | "month" | "all";
 export default function PnLPage() {
   const { trades, loading, addTrade, deleteTrade, refetch } = useTrades();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortField, setSortField] = useState<SortField>("trade_date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -248,6 +251,15 @@ export default function PnLPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleBulkImport = async (tradesToImport: Omit<Trade, "id" | "user_id" | "created_at">[]) => {
+    // Import trades one by one
+    for (const trade of tradesToImport) {
+      await addTrade(trade);
+    }
+    // Refetch to update the list
+    refetch();
+  };
+
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return null;
     return sortDirection === "asc" ? (
@@ -287,6 +299,14 @@ export default function PnLPage() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowImportModal(true)}
+              className="border-brown-700 text-brown-300 hover:bg-brown-800"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Import
+            </Button>
             <Button
               variant="outline"
               onClick={handleExportCSV}
@@ -842,6 +862,14 @@ export default function PnLPage() {
           </div>
         </div>
       )}
+
+      {/* Import Trades Modal */}
+      <ImportTradesModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        existingTrades={trades}
+        onImport={handleBulkImport}
+      />
     </div>
   );
 }
