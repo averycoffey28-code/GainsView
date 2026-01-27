@@ -1,67 +1,70 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import dynamic from "next/dynamic";
+import { useEffect, useState, useMemo } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
-import { Info, X, Sparkles, ChevronDown } from "lucide-react";
-import ContractInputForm from "@/components/ContractInputForm";
-import ResultsSummary from "@/components/ResultsSummary";
-import PriceScenarioSlider from "@/components/PriceScenarioSlider";
-import StockSearch from "@/components/StockSearch";
+import {
+  FileText,
+  CandlestickChart,
+  ChevronRight,
+  TrendingUp,
+  TrendingDown,
+  X,
+  Sparkles,
+} from "lucide-react";
 import Logo from "@/components/shared/Logo";
+import { useTrades } from "@/hooks/useUserData";
 
-// Dynamic imports for code splitting - heavy components loaded on demand
-const ProfitLossChart = dynamic(
-  () => import("@/components/ProfitLossChart"),
-  { ssr: false, loading: () => <div className="h-64 bg-brown-800/50 rounded-xl animate-pulse" /> }
+// Dynamic import for the chart to avoid SSR issues
+const AccountSummaryChart = dynamic(
+  () => import("@/components/home/AccountSummaryChart"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-48 bg-brown-800/30 rounded-lg animate-pulse" />
+    ),
+  }
 );
 
-const OptionsChainSelector = dynamic(
-  () => import("@/components/OptionsChainSelector"),
-  { ssr: false }
-);
-
-const TradingAssistant = dynamic(
-  () => import("@/components/TradingAssistant"),
-  { ssr: false }
-);
-import {
-  WelcomeHeader,
-  QuickStats,
-  MarketOverview,
-  QuickActions,
-  RecentActivity,
-} from "@/components/dashboard";
-import { useMarketData } from "@/hooks/useMarketData";
-import { usePositions, useTrades, useWatchlist } from "@/hooks/useUserData";
-import { OptionContract } from "@/lib/types";
-import { Button } from "@/components/ui/button";
-import {
-  ContractType,
-  Position,
-  calculateAll,
-} from "@/lib/calculations";
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
 
 export default function Home() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const calculatorRef = useRef<HTMLDivElement>(null);
   const [showWelcome, setShowWelcome] = useState(false);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
-  const [showCalculator, setShowCalculator] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("1M");
 
-  // Dashboard data hooks
-  const { positions, loading: positionsLoading } = usePositions();
+  // Get trades data
   const { trades, totalPnL, loading: tradesLoading } = useTrades();
-  const { watchlist, loading: watchlistLoading } = useWatchlist();
 
-  // Calculate dashboard stats
-  const openPositions = positions.filter((p) => p.status === "open").length;
-  const watchlistCount = watchlist.length;
-  const dashboardLoading = positionsLoading || tradesLoading || watchlistLoading;
+  const greeting = getGreeting();
+  const firstName = user?.firstName || "Trader";
+
+  // Calculate today's change (trades from today)
+  const todayChange = useMemo(() => {
+    const today = new Date().toDateString();
+    const todayTrades = trades.filter(
+      (t) => new Date(t.trade_date).toDateString() === today
+    );
+    const todayPnL = todayTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
+    const percentage = totalPnL !== 0 ? (todayPnL / Math.abs(totalPnL)) * 100 : 0;
+    return { value: todayPnL, percentage };
+  }, [trades, totalPnL]);
+
+  // Get recent trades for the journal preview (last 4)
+  const recentTrades = useMemo(() => {
+    return trades.slice(0, 4);
+  }, [trades]);
 
   // Check onboarding status
   useEffect(() => {
@@ -93,92 +96,9 @@ export default function Home() {
   useEffect(() => {
     if (searchParams.get("welcome") === "true") {
       setShowWelcome(true);
-      // Remove the query param
       window.history.replaceState({}, "", "/");
     }
   }, [searchParams]);
-  const [contractType, setContractType] = useState<ContractType>("call");
-  const [position, setPosition] = useState<Position>("long");
-  const [strikePrice, setStrikePrice] = useState(100);
-  const [premium, setPremium] = useState(5);
-  const [currentPrice, setCurrentPrice] = useState(100);
-  const [contracts, setContracts] = useState(1);
-  const [targetPrice, setTargetPrice] = useState(110);
-  const [selectedContract, setSelectedContract] = useState<OptionContract | null>(null);
-
-  const {
-    quote,
-    expirations,
-    chain,
-    selectedExpiration,
-    isLoading,
-    error,
-    lastUpdated,
-    fetchQuote,
-    fetchOptionsChain,
-  } = useMarketData();
-
-  const handleSymbolChange = useCallback(
-    async (symbol: string) => {
-      const quoteData = await fetchQuote(symbol);
-      if (quoteData) {
-        setCurrentPrice(quoteData.price);
-        setTargetPrice(Math.round(quoteData.price * 1.1));
-        setStrikePrice(Math.round(quoteData.price));
-        setSelectedContract(null);
-      }
-    },
-    [fetchQuote]
-  );
-
-  const handleExpirationChange = useCallback(
-    async (expiration: string) => {
-      if (quote?.symbol) {
-        await fetchOptionsChain(quote.symbol, expiration);
-        setSelectedContract(null);
-      }
-    },
-    [quote?.symbol, fetchOptionsChain]
-  );
-
-  const handleContractSelect = useCallback((contract: OptionContract) => {
-    setSelectedContract(contract);
-    setStrikePrice(contract.strike);
-    const contractPremium =
-      contract.last ||
-      (contract.bid && contract.ask
-        ? (contract.bid + contract.ask) / 2
-        : contract.ask || contract.bid || 0);
-    setPremium(contractPremium);
-  }, []);
-
-  const calculations = useMemo(() => {
-    return calculateAll({
-      contractType,
-      position,
-      strikePrice,
-      premium,
-      currentPrice,
-      contracts,
-      targetPrice,
-    });
-  }, [contractType, position, strikePrice, premium, currentPrice, contracts, targetPrice]);
-
-  // Quick action handlers
-  const handleNewCalculation = () => {
-    setShowCalculator(true);
-    setTimeout(() => {
-      calculatorRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
-  };
-
-  const handleLogTrade = () => {
-    router.push("/pnl");
-  };
-
-  const handleAskAI = () => {
-    router.push("/ai");
-  };
 
   // Show loading while checking onboarding
   if (!onboardingChecked && isLoaded && user) {
@@ -192,9 +112,11 @@ export default function Home() {
     );
   }
 
+  const periods = ["1W", "1M", "3M", "1Y", "ALL"];
+
   return (
-    <div className="min-h-full bg-gradient-to-br from-brown-950 via-brown-900 to-brown-950 text-brown-50 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-full bg-gradient-to-br from-brown-950 via-brown-900 to-brown-950 text-brown-50 p-4 md:p-6">
+      <div className="max-w-2xl mx-auto space-y-6">
         {/* Welcome Banner */}
         <AnimatePresence>
           {showWelcome && (
@@ -203,7 +125,7 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="mb-6 p-4 bg-gradient-to-r from-gold-500/20 to-gold-600/10 rounded-xl border border-gold-500/30 flex items-center justify-between"
+              className="p-4 bg-gradient-to-r from-gold-500/20 to-gold-600/10 rounded-xl border border-gold-500/30 flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
                 <motion.div
@@ -215,7 +137,7 @@ export default function Home() {
                 </motion.div>
                 <div>
                   <p className="text-brown-50 font-medium">Welcome to GainsView!</p>
-                  <p className="text-brown-400 text-sm">Your trading dashboard is ready. Start by searching for a stock symbol.</p>
+                  <p className="text-brown-400 text-sm">Your trading dashboard is ready.</p>
                 </div>
               </div>
               <motion.button
@@ -230,226 +152,236 @@ export default function Home() {
           )}
         </AnimatePresence>
 
-        {/* Dashboard Section */}
-        <div className="mb-8">
-          {/* Welcome Header */}
-          <WelcomeHeader />
-
-          {/* Quick Stats */}
-          <QuickStats
-            todayPnL={totalPnL}
-            openPositions={openPositions}
-            watchlistAlerts={watchlistCount}
-            isLoading={dashboardLoading}
-          />
-
-          {/* Market Overview */}
-          <MarketOverview />
-
-          {/* Quick Actions */}
-          <QuickActions
-            onNewCalculation={handleNewCalculation}
-            onLogTrade={handleLogTrade}
-            onAskAI={handleAskAI}
-          />
-
-          {/* Recent Activity */}
-          <RecentActivity
-            trades={trades}
-            positions={positions}
-            isLoading={dashboardLoading}
-          />
-        </div>
-
-        {/* Calculator Section Toggle */}
+        {/* Header - Greeting */}
         <motion.div
-          className="mb-6"
-          ref={calculatorRef}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.3 }}
+          transition={{ duration: 0.4 }}
         >
-          <motion.button
-            type="button"
-            onClick={() => setShowCalculator(!showCalculator)}
-            className="w-full flex items-center justify-between p-4 bg-brown-800/50 rounded-xl border border-brown-700/50 hover:bg-brown-800/70 transition-colors"
-            whileHover={{ scale: 1.01, boxShadow: "0 8px 30px rgba(212, 184, 150, 0.08)" }}
-            whileTap={{ scale: 0.99 }}
-          >
-            <div className="flex items-center gap-4">
-              <div className="flex-shrink-0">
-                <Logo size="small" glow />
-              </div>
-              <div className="text-left">
-                <h2 className="text-lg font-bold text-brown-50">
-                  Options P&L Calculator
-                </h2>
-                <p className="text-brown-400 text-sm">
-                  Visualize potential returns with live market data
-                </p>
-              </div>
-            </div>
-            <motion.div
-              animate={{ rotate: showCalculator ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ChevronDown className="w-5 h-5 text-brown-400" />
-            </motion.div>
-          </motion.button>
+          <h1 className="text-3xl font-bold text-brown-50">
+            {greeting},{" "}
+            <span className="text-gold-400">{firstName}</span>
+          </h1>
+          <div className="w-16 h-1 bg-gradient-to-r from-gold-400 to-gold-600 rounded-full mt-2" />
         </motion.div>
 
-        {/* Calculator Content */}
-        <AnimatePresence>
-          {showCalculator && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="overflow-hidden"
-            >
-              <motion.div
-                initial={{ y: 20 }}
-                animate={{ y: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-              >
+        {/* Account Summary Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="relative overflow-hidden rounded-2xl border border-gold-500/30 bg-gradient-to-br from-brown-800/80 to-brown-900/80 backdrop-blur-xl"
+        >
+          {/* Glass effect overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-gold-400/5 to-transparent pointer-events-none" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Input Panel */}
-          <div className="space-y-6">
-            {/* Stock Search */}
-            <StockSearch
-              onQuoteLoaded={() => {}}
-              onSymbolChange={handleSymbolChange}
-              quote={quote}
-              isLoading={isLoading}
-              error={error}
-              lastUpdated={lastUpdated}
-            />
+          <div className="relative p-5">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-brown-100">Account Summary</h2>
+              {/* Period selector */}
+              <div className="flex gap-1 p-1 bg-brown-800/50 rounded-lg">
+                {periods.map((period) => (
+                  <button
+                    key={period}
+                    onClick={() => setSelectedPeriod(period)}
+                    className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
+                      selectedPeriod === period
+                        ? "bg-gold-500 text-brown-900"
+                        : "text-brown-400 hover:text-brown-200"
+                    }`}
+                  >
+                    {period}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-            {/* Options Chain Selector */}
-            {quote && expirations.length > 0 && (
-              <OptionsChainSelector
-                expirations={expirations}
-                selectedExpiration={selectedExpiration}
-                onExpirationChange={handleExpirationChange}
-                chain={chain}
-                contractType={contractType}
-                onContractSelect={handleContractSelect}
-                isLoading={isLoading}
-                currentPrice={currentPrice}
-              />
-            )}
+            {/* Chart */}
+            <div className="h-48 mb-4">
+              {tradesLoading ? (
+                <div className="h-full bg-brown-800/30 rounded-lg animate-pulse" />
+              ) : (
+                <AccountSummaryChart trades={trades} period={selectedPeriod} />
+              )}
+            </div>
 
-            <ContractInputForm
-              contractType={contractType}
-              setContractType={setContractType}
-              position={position}
-              setPosition={setPosition}
-              strikePrice={strikePrice}
-              setStrikePrice={setStrikePrice}
-              premium={premium}
-              setPremium={setPremium}
-              currentPrice={currentPrice}
-              setCurrentPrice={setCurrentPrice}
-              contracts={contracts}
-              setContracts={setContracts}
-              totalPremium={calculations.totalPremium}
-            />
-
-            <PriceScenarioSlider
-              targetPrice={targetPrice}
-              setTargetPrice={setTargetPrice}
-              strikePrice={strikePrice}
-              targetPnL={calculations.targetPnL}
-            />
-          </div>
-
-          {/* Chart & Results */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Selected Contract Info */}
-            {selectedContract && (
-              <div className="p-4 bg-gold-400/10 border border-gold-400/20 rounded-xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-xs text-gold-400 uppercase tracking-wide">
-                      Selected Contract
-                    </span>
-                    <p className="text-brown-50 font-mono text-sm mt-1">
-                      {selectedContract.symbol}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-xs text-brown-400">
-                      Strike: ${selectedContract.strike} | Premium: $
-                      {premium.toFixed(2)}
-                    </span>
-                    <p className="text-xs text-brown-500 mt-1">
-                      Bid: ${selectedContract.bid?.toFixed(2)} | Ask: $
-                      {selectedContract.ask?.toFixed(2)}
-                    </p>
-                  </div>
+            {/* Stats */}
+            <div className="flex items-center justify-between pt-4 border-t border-brown-700/50">
+              <div>
+                <p className="text-xs text-brown-400 mb-1">Total P&L</p>
+                <p
+                  className={`text-2xl font-bold ${
+                    totalPnL >= 0 ? "text-emerald-400" : "text-rose-400"
+                  }`}
+                >
+                  {totalPnL >= 0 ? "+" : ""}${Math.abs(totalPnL).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-brown-400 mb-1">Today&apos;s Change</p>
+                <div
+                  className={`flex items-center justify-end gap-1 ${
+                    todayChange.value >= 0 ? "text-emerald-400" : "text-rose-400"
+                  }`}
+                >
+                  {todayChange.value >= 0 ? (
+                    <TrendingUp className="w-4 h-4" />
+                  ) : (
+                    <TrendingDown className="w-4 h-4" />
+                  )}
+                  <span className="text-lg font-semibold">
+                    {todayChange.percentage >= 0 ? "+" : ""}
+                    {todayChange.percentage.toFixed(1)}%
+                  </span>
                 </div>
               </div>
-            )}
-
-            {/* Summary Cards */}
-            <ResultsSummary
-              calculations={calculations}
-              contractType={contractType}
-              position={position}
-              targetPrice={targetPrice}
-            />
-
-            {/* P&L Chart */}
-            <ProfitLossChart
-              data={calculations.priceRange}
-              breakEven={calculations.breakEven}
-              strikePrice={strikePrice}
-              currentPrice={currentPrice}
-              targetPrice={targetPrice}
-              contractType={contractType}
-              position={position}
-            />
+            </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Footer Note */}
-        <div className="mt-8 p-4 bg-brown-800/30 rounded-xl border border-brown-700/50 flex items-start gap-3">
-          <Info className="w-5 h-5 text-gold-400 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-brown-400">
-            <p>
-              This calculator shows profit/loss at expiration. Options can also
-              be sold before expiration, where time value and implied
-              volatility affect pricing.
-            </p>
-            <p className="mt-2">
-              <strong className="text-brown-300">Live Data:</strong> Enter a
-              stock symbol to fetch real-time quotes and options chains from
-              Tradier. Requires API key in <code className="text-gold-400">.env.local</code>.
-            </p>
-          </div>
+        {/* Two Cards Side by Side */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Trading Journal Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            <Link href="/pnl">
+              <div className="h-full relative overflow-hidden rounded-xl border border-brown-700/50 bg-gradient-to-br from-brown-800/60 to-brown-900/60 backdrop-blur-xl hover:border-gold-500/30 transition-all group">
+                <div className="absolute inset-0 bg-gradient-to-br from-gold-400/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+                <div className="relative p-4">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-2 bg-brown-700/50 rounded-lg group-hover:bg-gold-500/20 transition-colors">
+                      <FileText className="w-5 h-5 text-brown-300 group-hover:text-gold-400 transition-colors" />
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-brown-500 group-hover:text-gold-400 transition-colors" />
+                  </div>
+
+                  <h3 className="font-semibold text-brown-100 mb-3">Trading Journal</h3>
+
+                  {/* Recent trades preview */}
+                  <div className="space-y-2">
+                    {tradesLoading ? (
+                      <>
+                        <div className="h-3 bg-brown-700/50 rounded animate-pulse" />
+                        <div className="h-3 bg-brown-700/50 rounded animate-pulse w-3/4" />
+                        <div className="h-3 bg-brown-700/50 rounded animate-pulse w-1/2" />
+                      </>
+                    ) : recentTrades.length > 0 ? (
+                      recentTrades.map((trade) => (
+                        <div
+                          key={trade.id}
+                          className="flex items-center justify-between text-xs"
+                        >
+                          <span className="text-brown-400 truncate">
+                            {trade.symbol}
+                          </span>
+                          <span
+                            className={
+                              (trade.pnl || 0) >= 0
+                                ? "text-emerald-400"
+                                : "text-rose-400"
+                            }
+                          >
+                            {(trade.pnl || 0) >= 0 ? "+" : ""}${Math.abs(trade.pnl || 0).toFixed(0)}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-brown-500">No trades yet</p>
+                    )}
+                  </div>
+
+                  {/* View All */}
+                  <p className="text-xs text-gold-400 mt-3 group-hover:text-gold-300 transition-colors">
+                    View All
+                  </p>
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+
+          {/* Strategy Builder Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+          >
+            <Link href="/portfolio">
+              <div className="h-full relative overflow-hidden rounded-xl border border-brown-700/50 bg-gradient-to-br from-brown-800/60 to-brown-900/60 backdrop-blur-xl hover:border-gold-500/30 transition-all group">
+                <div className="absolute inset-0 bg-gradient-to-br from-gold-400/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+                <div className="relative p-4">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-2 bg-brown-700/50 rounded-lg group-hover:bg-gold-500/20 transition-colors">
+                      <CandlestickChart className="w-5 h-5 text-brown-300 group-hover:text-gold-400 transition-colors" />
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-brown-500 group-hover:text-gold-400 transition-colors" />
+                  </div>
+
+                  <h3 className="font-semibold text-brown-100 mb-3">Strategy Builder</h3>
+
+                  {/* Strategy visualization */}
+                  <div className="flex items-end justify-center gap-1 h-16 mb-2">
+                    {/* Candlestick visualization */}
+                    <div className="flex flex-col items-center">
+                      <div className="w-0.5 h-3 bg-emerald-400/60" />
+                      <div className="w-2 h-5 bg-emerald-400 rounded-sm" />
+                      <div className="w-0.5 h-2 bg-emerald-400/60" />
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className="w-0.5 h-2 bg-rose-400/60" />
+                      <div className="w-2 h-6 bg-rose-400 rounded-sm" />
+                      <div className="w-0.5 h-3 bg-rose-400/60" />
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className="w-0.5 h-4 bg-emerald-400/60" />
+                      <div className="w-2 h-4 bg-emerald-400 rounded-sm" />
+                      <div className="w-0.5 h-2 bg-emerald-400/60" />
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className="w-0.5 h-2 bg-emerald-400/60" />
+                      <div className="w-2 h-7 bg-emerald-400 rounded-sm" />
+                      <div className="w-0.5 h-1 bg-emerald-400/60" />
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className="w-0.5 h-3 bg-rose-400/60" />
+                      <div className="w-2 h-4 bg-rose-400 rounded-sm" />
+                      <div className="w-0.5 h-4 bg-rose-400/60" />
+                    </div>
+                  </div>
+
+                  {/* Strategy types */}
+                  <div className="flex flex-wrap gap-1">
+                    <span className="text-[10px] px-1.5 py-0.5 bg-brown-700/50 text-brown-400 rounded">
+                      Calls
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 bg-brown-700/50 text-brown-400 rounded">
+                      Puts
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 bg-brown-700/50 text-brown-400 rounded">
+                      Spreads
+                    </span>
+                  </div>
+
+                  {/* CTA */}
+                  <p className="text-xs text-gold-400 mt-3 group-hover:text-gold-300 transition-colors">
+                    Build Strategy
+                  </p>
+                </div>
+              </div>
+            </Link>
+          </motion.div>
         </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
-
-      {/* AI Trading Assistant */}
-      <TradingAssistant
-        context={{
-          symbol: quote?.symbol,
-          contractType,
-          position,
-          strikePrice,
-          premium,
-          currentPrice,
-          contracts,
-          targetPrice,
-        }}
-        calculations={calculations}
-      />
     </div>
   );
 }
