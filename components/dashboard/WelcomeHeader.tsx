@@ -1,18 +1,20 @@
 "use client";
 
+import { useMemo } from "react";
 import { useUser } from "@clerk/nextjs";
 import { motion } from "framer-motion";
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
+import { useTimezone } from "@/contexts/TimezoneContext";
 
 export default function WelcomeHeader() {
   const { user } = useUser();
-  const greeting = getGreeting();
+  const { getCurrentHour } = useTimezone();
+
+  const greeting = useMemo(() => {
+    const hour = getCurrentHour();
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
+  }, [getCurrentHour]);
   const firstName = user?.firstName || "Trader";
 
   return (

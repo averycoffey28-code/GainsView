@@ -14,6 +14,7 @@ export default function InstallPWA() {
     isStandalone,
     promptInstall,
     dismissPrompt,
+    dismissPermanently,
     shouldShowPrompt,
     canPrompt,
   } = usePWA();
@@ -45,6 +46,12 @@ export default function InstallPWA() {
 
   const handleDismiss = () => {
     dismissPrompt();
+    setShowBanner(false);
+    setShowIOSGuide(false);
+  };
+
+  const handleNeverShow = () => {
+    dismissPermanently();
     setShowBanner(false);
     setShowIOSGuide(false);
   };
@@ -110,6 +117,13 @@ export default function InstallPWA() {
                   Install
                 </motion.button>
               </div>
+              <motion.button
+                onClick={handleNeverShow}
+                whileTap={{ scale: 0.98 }}
+                className="w-full mt-1 py-1.5 text-xs text-brown-600 hover:text-brown-400 transition-colors"
+              >
+                Don&apos;t show again
+              </motion.button>
             </div>
           </motion.div>
         )}
@@ -210,7 +224,7 @@ export default function InstallPWA() {
               </div>
 
               {/* Footer */}
-              <div className="p-4 border-t border-brown-700">
+              <div className="p-4 border-t border-brown-700 space-y-2">
                 <motion.button
                   onClick={handleDismiss}
                   whileHover={{ scale: 1.01 }}
@@ -218,6 +232,13 @@ export default function InstallPWA() {
                   className="w-full py-3 rounded-xl bg-brown-700 text-brown-200 font-medium text-sm hover:bg-brown-600 transition-colors"
                 >
                   Got it
+                </motion.button>
+                <motion.button
+                  onClick={handleNeverShow}
+                  whileTap={{ scale: 0.99 }}
+                  className="w-full py-2 text-xs text-brown-600 hover:text-brown-400 transition-colors"
+                >
+                  Don&apos;t show again
                 </motion.button>
               </div>
             </motion.div>

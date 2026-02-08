@@ -11,9 +11,9 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user is admin
+    // Check if user is admin (case-insensitive email comparison)
     const userEmail = sessionClaims?.email as string | undefined;
-    if (userEmail !== ADMIN_EMAIL) {
+    if (!userEmail || userEmail.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

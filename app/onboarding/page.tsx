@@ -13,7 +13,6 @@ import {
   TrendingUp,
   BarChart3,
   Zap,
-  Link2,
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,8 +25,7 @@ const steps = [
   { id: 1, title: "Welcome" },
   { id: 2, title: "Risk Acknowledgment" },
   { id: 3, title: "Preferences" },
-  { id: 4, title: "Connect" },
-  { id: 5, title: "Complete" },
+  { id: 4, title: "Complete" },
 ];
 
 const riskDisclosures = [
@@ -103,15 +101,13 @@ export default function OnboardingPage() {
         return tradingPreference && experienceLevel;
       case 4:
         return true;
-      case 5:
-        return true;
       default:
         return false;
     }
   };
 
   const handleNext = () => {
-    if (currentStep < 5) {
+    if (currentStep < 4) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -162,7 +158,7 @@ export default function OnboardingPage() {
       <div className="w-full bg-brown-800/50 h-1">
         <div
           className="h-full bg-gradient-to-r from-gold-500 to-gold-400 transition-all duration-500"
-          style={{ width: `${(currentStep / 5) * 100}%` }}
+          style={{ width: `${(currentStep / 4) * 100}%` }}
         />
       </div>
 
@@ -424,65 +420,8 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* Step 4: Connect */}
+          {/* Step 4: Complete */}
           {currentStep === 4 && (
-            <div>
-              <div className="text-center mb-8">
-                <div className="inline-flex p-4 bg-blue-500/10 rounded-2xl mb-4">
-                  <Link2 className="w-10 h-10 text-blue-400" />
-                </div>
-                <h2 className="text-2xl font-bold text-brown-50 mb-2">
-                  Connect Your Data
-                </h2>
-                <p className="text-brown-400">
-                  Optional: Sync your portfolio for enhanced insights
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="bg-brown-800/30 rounded-xl p-6 border border-brown-700/50 opacity-60">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-brown-700/50 rounded-xl">
-                        <TrendingUp className="w-6 h-6 text-brown-400" />
-                      </div>
-                      <div>
-                        <p className="text-brown-200 font-medium">Broker Integration</p>
-                        <p className="text-brown-500 text-sm">Connect your brokerage account</p>
-                      </div>
-                    </div>
-                    <span className="text-xs bg-brown-700 text-brown-400 px-3 py-1 rounded-full">
-                      Coming Soon
-                    </span>
-                  </div>
-                </div>
-
-                <div className="bg-brown-800/30 rounded-xl p-6 border border-brown-700/50 opacity-60">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-brown-700/50 rounded-xl">
-                        <BarChart3 className="w-6 h-6 text-brown-400" />
-                      </div>
-                      <div>
-                        <p className="text-brown-200 font-medium">Import Trades</p>
-                        <p className="text-brown-500 text-sm">Upload CSV from your broker</p>
-                      </div>
-                    </div>
-                    <span className="text-xs bg-brown-700 text-brown-400 px-3 py-1 rounded-full">
-                      Coming Soon
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <p className="text-center text-brown-500 text-sm mt-6">
-                You can always connect these later from Settings
-              </p>
-            </div>
-          )}
-
-          {/* Step 5: Complete */}
-          {currentStep === 5 && (
             <div className="text-center">
               <div className="relative inline-block mb-8">
                 <div className="absolute inset-0 blur-3xl opacity-40 bg-emerald-400 rounded-full scale-150" />
@@ -524,7 +463,7 @@ export default function OnboardingPage() {
       {/* Navigation buttons */}
       <div className="p-6 border-t border-brown-800/50">
         <div className="max-w-lg mx-auto flex items-center justify-between">
-          {currentStep > 1 && currentStep < 5 ? (
+          {currentStep > 1 && currentStep < 4 ? (
             <Button
               type="button"
               variant="ghost"
@@ -538,14 +477,14 @@ export default function OnboardingPage() {
             <div />
           )}
 
-          {currentStep < 5 ? (
+          {currentStep < 4 ? (
             <Button
               type="button"
               onClick={handleNext}
               disabled={!canProceed()}
               className="bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-brown-900 font-semibold px-8 disabled:opacity-50"
             >
-              {currentStep === 4 ? "Skip for Now" : "Continue"}
+              Continue
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           ) : (

@@ -41,87 +41,67 @@ export default function SignUpPage() {
       </div>
 
       {/* Left Panel - Branding (hidden on mobile) */}
-      <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-12 overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 h-screen relative flex-col items-center justify-center p-8 overflow-hidden text-center">
         {/* Gold accent line */}
         <div className="absolute top-0 right-0 w-px h-full bg-gradient-to-b from-transparent via-gold-400/30 to-transparent" />
 
-        {/* Top section - Logo and tagline */}
-        <div className="relative z-10">
-          <div className="flex items-center gap-5 mb-4">
-            <div className="relative">
-              <div className="absolute inset-0 blur-2xl opacity-50 bg-gold-400 rounded-full scale-150" />
-              <Image
-                src="/images/logo.png"
-                alt="GainsView"
-                width={64}
-                height={64}
-                className="relative z-10 drop-shadow-[0_0_20px_rgba(212,175,55,0.4)]"
-                priority
-              />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-brown-50 tracking-tight">GainsView</h1>
-              <p className="text-gold-400 text-sm font-medium">Premium Options Trading</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Center section - Hero */}
-        <div className="relative z-10 flex-1 flex flex-col justify-center -mt-16">
-          <div className="mb-10">
-            <div className="relative inline-block">
-              <div className="absolute inset-0 blur-3xl opacity-50 bg-gold-400 rounded-full scale-150" />
-              <Image
-                src="/images/logo.png"
-                alt="GainsView"
-                width={220}
-                height={220}
-                className="relative z-10 drop-shadow-[0_0_50px_rgba(212,175,55,0.5)]"
-                priority
-              />
-            </div>
+        {/* Centered content */}
+        <div className="relative z-10 flex flex-col items-center">
+          {/* Bull Logo - LARGE (uses negative margin to appear bigger without affecting layout) */}
+          <div className="relative -my-10">
+            <div className="absolute inset-0 blur-3xl opacity-50 bg-gold-400 rounded-full scale-150" />
+            <Image
+              src="/images/logo.png"
+              alt="GainsView"
+              width={320}
+              height={320}
+              className="relative z-10 w-80 h-80 object-contain"
+              style={{ filter: 'drop-shadow(0 0 50px rgba(212, 175, 55, 0.5))' }}
+              priority
+            />
           </div>
 
-          <h2 className="text-4xl font-bold text-brown-50 mb-4 leading-tight">
-            Start Trading<br />
-            <span className="text-gold-400">Like a Pro.</span>
-          </h2>
+          {/* Title */}
+          <h1 className="text-6xl font-bold mb-1" style={{ color: '#D4AF37' }}>GainsView</h1>
+          <p className="text-base uppercase tracking-[0.3em] mb-4" style={{ color: 'rgba(212, 175, 55, 0.7)' }}>Premium Options Trading</p>
 
-          <p className="text-brown-400 text-lg mb-8 max-w-md">
+          {/* Tagline */}
+          <h2 className="text-3xl font-bold text-brown-50 mb-0.5">Start Trading</h2>
+          <h2 className="text-3xl font-bold text-gold-400 mb-4">Like a Pro.</h2>
+
+          <p className="text-brown-400 text-sm mb-4 max-w-md">
             Professional-grade options analytics to help you make smarter trading decisions.
           </p>
 
           {/* Benefits list */}
-          <div className="space-y-3 mb-8">
+          <div className="space-y-2 mb-4 text-left">
             {benefits.map((benefit) => (
-              <div key={benefit} className="flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                <span className="text-brown-200">{benefit}</span>
+              <div key={benefit} className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                <span className="text-brown-200 text-sm">{benefit}</span>
               </div>
             ))}
           </div>
 
-          {/* Social proof */}
-          <div className="flex items-center gap-6">
+          {/* Social proof badges */}
+          <div className="flex items-center gap-4 mb-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-gold-400" />
-              <span className="px-2.5 py-1 bg-gold-400/20 text-gold-400 text-xs font-semibold rounded-full border border-gold-400/30">
+              <Sparkles className="w-4 h-4 text-gold-400" />
+              <span className="px-3 py-1 bg-gold-400/10 text-gold-400 text-xs font-semibold rounded-full border border-gold-400/30">
                 Beta
               </span>
             </div>
             <div className="h-4 w-px bg-brown-700" />
             <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-gold-400" />
-              <span className="text-brown-300 text-sm">
-                <span className="text-brown-50 font-semibold">Real-time</span> data
+              <Zap className="w-4 h-4 text-gold-400" />
+              <span className="text-brown-400 text-sm">
+                <span className="text-brown-200 font-medium">Real-time</span> data
               </span>
             </div>
           </div>
-        </div>
 
-        {/* Bottom section - Trust badges */}
-        <div className="relative z-10 pt-8 border-t border-brown-800/50">
-          <div className="flex items-center gap-6">
+          {/* Trust badges */}
+          <div className="flex items-center gap-6 mt-4 pt-4 border-t border-brown-800/50">
             <div className="flex items-center gap-2 text-brown-500 text-sm">
               <Shield className="w-4 h-4 text-emerald-500" />
               <span>Bank-level security</span>

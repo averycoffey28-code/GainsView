@@ -78,8 +78,25 @@ export interface UserSettings {
   trading_preference: "calls" | "puts" | "both" | null;
   experience_level: "beginner" | "intermediate" | "advanced" | null;
   risk_acknowledged: boolean;
+  market_disclaimer_acknowledged: boolean;
+  push_endpoint: string | null;
+  push_p256dh: string | null;
+  push_auth: string | null;
+  push_reminder_time: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface Goal {
+  id: string;
+  user_id: string;
+  label: string;
+  type: "weekly" | "monthly" | "yearly" | "custom";
+  target: number;
+  start_date: string;
+  end_date: string;
+  status: "active" | "completed" | "failed" | "archived";
+  created_at: string;
 }
 
 // Custom fetcher that extracts data from response
@@ -324,6 +341,32 @@ export function useTrades() {
     [mutateTrades]
   );
 
+  const updateTrade = useCallback(
+    async (id: string, updates: Partial<Omit<Trade, "id" | "user_id" | "created_at">>) => {
+      try {
+        const res = await fetch("/api/user", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "trade", id, data: updates }),
+        });
+        if (res.ok) {
+          const { data: updatedTrade } = await res.json();
+          if (updatedTrade) {
+            mutateTrades(
+              (prev) => prev?.map((t) => (t.id === id ? { ...t, ...updatedTrade } : t)),
+              false
+            );
+            return true;
+          }
+        }
+      } catch (error) {
+        console.error("Error updating trade:", error);
+      }
+      return false;
+    },
+    [mutateTrades]
+  );
+
   const deleteTrade = useCallback(
     async (id: string) => {
       try {
@@ -346,6 +389,7 @@ export function useTrades() {
     trades,
     loading: isLoading,
     addTrade,
+    updateTrade,
     deleteTrade,
     totalPnL,
     refetch: mutateTrades,
@@ -456,3 +500,97 @@ export function useUserSettings() {
 
 // Alias for backward compatibility
 export const useSupabaseUser = useDbUser;
+
+export function useGoals() {
+  const { clerkUser } = useDbUser();
+
+  const { data, isLoading, mutate: mutateGoals } = useSWR<Goal[]>(
+    clerkUser ? "/api/user?type=goals" : null,
+    userFetcher,
+    userDataConfig
+  );
+
+  const goals = useMemo(() => data || [], [data]);
+
+  const activeGoals = useMemo(
+    () => goals.filter((g) => g.status === "active"),
+    [goals]
+  );
+
+  const addGoal = useCallback(
+    async (goal: Omit<Goal, "id" | "user_id" | "created_at" | "status">) => {
+      try {
+        const res = await fetch("/api/user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "goal", data: { ...goal, status: "active" } }),
+        });
+        if (res.ok) {
+          const { data: newGoal } = await res.json();
+          if (newGoal) {
+            mutateGoals((prev) => [newGoal, ...(prev || [])], false);
+            return newGoal;
+          }
+        }
+      } catch (error) {
+        console.error("Error adding goal:", error);
+      }
+      return null;
+    },
+    [mutateGoals]
+  );
+
+  const updateGoal = useCallback(
+    async (id: string, updates: Partial<Goal>) => {
+      try {
+        const res = await fetch("/api/user", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "goal", id, data: updates }),
+        });
+        if (res.ok) {
+          const { data: updatedGoal } = await res.json();
+          if (updatedGoal) {
+            mutateGoals(
+              (prev) => prev?.map((g) => (g.id === id ? { ...g, ...updatedGoal } : g)),
+              false
+            );
+            return true;
+          }
+        }
+      } catch (error) {
+        console.error("Error updating goal:", error);
+      }
+      return false;
+    },
+    [mutateGoals]
+  );
+
+  const deleteGoal = useCallback(
+    async (id: string) => {
+      try {
+        const res = await fetch(`/api/user?type=goal&id=${id}`, {
+          method: "DELETE",
+        });
+        if (res.ok) {
+          mutateGoals((prev) => prev?.filter((g) => g.id !== id), false);
+          return true;
+        }
+      } catch (error) {
+        console.error("Error deleting goal:", error);
+      }
+      return false;
+    },
+    [mutateGoals]
+  );
+
+  return {
+    goals,
+    activeGoals,
+    loading: isLoading,
+    addGoal,
+    updateGoal,
+    deleteGoal,
+    refetch: mutateGoals,
+  };
+}

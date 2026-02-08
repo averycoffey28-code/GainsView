@@ -121,7 +121,7 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Handle push notifications (future feature)
+// Handle push notifications
 self.addEventListener('push', (event) => {
   if (!event.data) return;
 
@@ -134,6 +134,10 @@ self.addEventListener('push', (event) => {
     data: {
       url: data.url || '/',
     },
+    actions: [
+      { action: 'log-trade', title: 'Log Trade' },
+      { action: 'dismiss', title: 'Dismiss' },
+    ],
   };
 
   event.waitUntil(
@@ -145,16 +149,25 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
+  const action = event.action;
+
+  if (action === 'dismiss') {
+    return;
+  }
+
+  // Default click or 'log-trade' action → open /pnl
+  const targetUrl = action === 'log-trade' ? '/pnl' : (event.notification.data.url || '/pnl');
+
   event.waitUntil(
     clients.matchAll({ type: 'window' }).then((clientList) => {
-      // Focus existing window or open new one
       for (const client of clientList) {
-        if (client.url === event.notification.data.url && 'focus' in client) {
+        if ('focus' in client) {
+          client.navigate(targetUrl);
           return client.focus();
         }
       }
       if (clients.openWindow) {
-        return clients.openWindow(event.notification.data.url);
+        return clients.openWindow(targetUrl);
       }
     })
   );

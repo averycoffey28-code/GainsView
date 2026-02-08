@@ -55,22 +55,36 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Get options chain for specific expiration
-    const chainResponse = await fetch(
-      `${TRADIER_API_URL}/markets/options/chains?symbol=${symbol.toUpperCase()}&expiration=${expiration}`,
-      {
-        headers: {
-          Authorization: `Bearer ${TRADIER_API_KEY}`,
-          Accept: "application/json",
-        },
-      }
-    );
+    // Get options chain and current stock price in parallel
+    const [chainResponse, quoteResponse] = await Promise.all([
+      fetch(
+        `${TRADIER_API_URL}/markets/options/chains?symbol=${symbol.toUpperCase()}&expiration=${expiration}&greeks=true`,
+        {
+          headers: {
+            Authorization: `Bearer ${TRADIER_API_KEY}`,
+            Accept: "application/json",
+          },
+        }
+      ),
+      fetch(
+        `${TRADIER_API_URL}/markets/quotes?symbols=${symbol.toUpperCase()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${TRADIER_API_KEY}`,
+            Accept: "application/json",
+          },
+        }
+      ),
+    ]);
 
     if (!chainResponse.ok) {
       throw new Error(`Tradier API error: ${chainResponse.status}`);
     }
 
     const chainData = await chainResponse.json();
+    const quoteData = quoteResponse.ok ? await quoteResponse.json() : null;
+
+    const currentPrice = quoteData?.quotes?.quote?.last ?? null;
 
     if (!chainData.options?.option) {
       return NextResponse.json(
@@ -83,70 +97,59 @@ export async function GET(request: NextRequest) {
       ? chainData.options.option
       : [chainData.options.option];
 
-    // Group by strike price
-    const calls = options
-      .filter((opt: { option_type: string }) => opt.option_type === "call")
-      .map((opt: {
-        symbol: string;
-        strike: number;
-        bid: number;
-        ask: number;
-        last: number;
-        volume: number;
-        open_interest: number;
-        greeks?: {
-          delta: number;
-          gamma: number;
-          theta: number;
-          vega: number;
-          iv: number;
-        };
-      }) => ({
-        symbol: opt.symbol,
-        strike: opt.strike,
-        bid: opt.bid,
-        ask: opt.ask,
-        last: opt.last,
-        volume: opt.volume,
-        openInterest: opt.open_interest,
-        delta: opt.greeks?.delta,
-        iv: opt.greeks?.iv,
-      }));
+    interface TradierOption {
+      symbol: string;
+      option_type: string;
+      strike: number;
+      bid: number;
+      ask: number;
+      last: number;
+      change: number;
+      change_percentage: number;
+      volume: number;
+      open_interest: number;
+      greeks?: {
+        delta: number;
+        gamma: number;
+        theta: number;
+        vega: number;
+        mid_iv: number;
+      };
+    }
 
-    const puts = options
-      .filter((opt: { option_type: string }) => opt.option_type === "put")
-      .map((opt: {
-        symbol: string;
-        strike: number;
-        bid: number;
-        ask: number;
-        last: number;
-        volume: number;
-        open_interest: number;
-        greeks?: {
-          delta: number;
-          gamma: number;
-          theta: number;
-          vega: number;
-          iv: number;
-        };
-      }) => ({
-        symbol: opt.symbol,
-        strike: opt.strike,
-        bid: opt.bid,
-        ask: opt.ask,
-        last: opt.last,
-        volume: opt.volume,
-        openInterest: opt.open_interest,
-        delta: opt.greeks?.delta,
-        iv: opt.greeks?.iv,
-      }));
+    const mapOption = (opt: TradierOption) => ({
+      symbol: opt.symbol,
+      strike: opt.strike,
+      bid: opt.bid ?? 0,
+      ask: opt.ask ?? 0,
+      last: opt.last ?? 0,
+      change: opt.change ?? 0,
+      changePercent: opt.change_percentage ?? 0,
+      volume: opt.volume ?? 0,
+      openInterest: opt.open_interest ?? 0,
+      delta: opt.greeks?.delta ?? null,
+      gamma: opt.greeks?.gamma ?? null,
+      theta: opt.greeks?.theta ?? null,
+      vega: opt.greeks?.vega ?? null,
+      iv: opt.greeks?.mid_iv ?? null,
+    });
+
+    const allCalls = options
+      .filter((opt: TradierOption) => opt.option_type === "call")
+      .map(mapOption)
+      .sort((a: { strike: number }, b: { strike: number }) => a.strike - b.strike);
+
+    const allPuts = options
+      .filter((opt: TradierOption) => opt.option_type === "put")
+      .map(mapOption)
+      .sort((a: { strike: number }, b: { strike: number }) => a.strike - b.strike);
 
     return NextResponse.json({
       symbol: symbol.toUpperCase(),
       expiration,
-      calls: calls.sort((a: { strike: number }, b: { strike: number }) => a.strike - b.strike),
-      puts: puts.sort((a: { strike: number }, b: { strike: number }) => a.strike - b.strike),
+      currentPrice,
+      calls: allCalls,
+      puts: allPuts,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

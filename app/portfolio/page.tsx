@@ -28,7 +28,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Logo from "@/components/shared/Logo";
-import { useWatchlist } from "@/hooks/useUserData";
+import MarketDataDisclaimer from "@/components/MarketDataDisclaimer";
+import { useWatchlist, useUserSettings } from "@/hooks/useUserData";
 import { cn } from "@/lib/utils";
 
 interface SearchResult {
@@ -68,10 +69,15 @@ interface OptionContract {
   bid: number;
   ask: number;
   last: number;
+  change: number;
+  changePercent: number;
   volume: number;
   openInterest: number;
-  delta?: number;
-  iv?: number;
+  delta?: number | null;
+  gamma?: number | null;
+  theta?: number | null;
+  vega?: number | null;
+  iv?: number | null;
 }
 
 const CHART_RANGES = ["1D", "1W", "1M", "3M", "1Y", "ALL"] as const;
@@ -88,6 +94,39 @@ const MARKET_INDICES = [
 export default function MarketsPage() {
   const router = useRouter();
   const { watchlist, addToWatchlist, removeFromWatchlist, loading: watchlistLoading } = useWatchlist();
+  const { settings, updateSettings } = useUserSettings();
+
+  // Disclaimer state
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [disclaimerChecked, setDisclaimerChecked] = useState(false);
+
+  useEffect(() => {
+    const localAcknowledged = localStorage.getItem("gainsview-market-disclaimer");
+    if (localAcknowledged === "true") {
+      setDisclaimerChecked(true);
+      return;
+    }
+    if (settings?.market_disclaimer_acknowledged) {
+      localStorage.setItem("gainsview-market-disclaimer", "true");
+      setDisclaimerChecked(true);
+      return;
+    }
+    // Only show once settings have loaded (avoid flash)
+    if (settings !== null && settings !== undefined) {
+      setShowDisclaimer(true);
+    }
+  }, [settings]);
+
+  const handleAcknowledge = async () => {
+    localStorage.setItem("gainsview-market-disclaimer", "true");
+    setShowDisclaimer(false);
+    setDisclaimerChecked(true);
+    try {
+      await updateSettings({ market_disclaimer_acknowledged: true });
+    } catch {
+      // localStorage is already set, safe to continue
+    }
+  };
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -110,6 +149,8 @@ export default function MarketsPage() {
   const [calls, setCalls] = useState<OptionContract[]>([]);
   const [puts, setPuts] = useState<OptionContract[]>([]);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
+  const [optionsCurrentPrice, setOptionsCurrentPrice] = useState<number | null>(null);
+  const [activeOptionTab, setActiveOptionTab] = useState<"calls" | "puts">("calls");
 
   // Watchlist prices
   const [watchlistPrices, setWatchlistPrices] = useState<Record<string, StockQuote>>({});
@@ -223,6 +264,7 @@ export default function MarketsPage() {
         const data = await res.json();
         setCalls(data.calls || []);
         setPuts(data.puts || []);
+        if (data.currentPrice) setOptionsCurrentPrice(data.currentPrice);
       }
     } catch (error) {
       console.error("Options chain error:", error);
@@ -353,10 +395,15 @@ export default function MarketsPage() {
 
   return (
     <div className="min-h-full bg-gradient-to-br from-brown-950 via-brown-900 to-brown-950 text-brown-50 p-4 pb-24">
+      {/* Market Data Disclaimer Modal */}
+      {showDisclaimer && (
+        <MarketDataDisclaimer onAcknowledge={handleAcknowledge} />
+      )}
+
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Logo size="medium" glow />
+          <Logo size="header" glow />
           <div>
             <h1 className="text-2xl font-bold text-brown-50">Markets</h1>
             <p className="text-brown-400 text-sm">Search stocks & track your watchlist</p>
@@ -368,11 +415,11 @@ export default function MarketsPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-brown-500" />
             <Input
-              placeholder="Search stocks & options..."
+              placeholder="Search by ticker (AAPL, TSLA, SPY...)"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => setSearchQuery(e.target.value.toUpperCase())}
               onFocus={() => searchQuery && setShowResults(true)}
-              className="pl-10 pr-10 py-6 text-lg bg-brown-800/50 border-brown-700 text-brown-100 placeholder:text-brown-500 focus:border-gold-500/50"
+              className="pl-10 pr-10 py-6 text-lg bg-brown-800/50 border-brown-700 text-brown-100 placeholder:text-brown-500 focus:border-gold-500/50 uppercase"
             />
             {searchQuery && (
               <button
@@ -396,24 +443,35 @@ export default function MarketsPage() {
                 </div>
               ) : searchResults.length > 0 ? (
                 <div className="max-h-64 overflow-y-auto">
-                  {searchResults.map((result) => (
-                    <button
-                      key={result.symbol}
-                      onClick={() => handleSelectStock(result.symbol)}
-                      className="w-full flex items-center justify-between p-3 hover:bg-brown-800/50 transition-colors"
-                    >
-                      <div className="text-left">
-                        <p className="font-semibold text-brown-100">{result.symbol}</p>
-                        <p className="text-sm text-brown-400 truncate max-w-[250px]">
-                          {result.name}
-                        </p>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-brown-500" />
-                    </button>
-                  ))}
+                  {searchResults.map((result) => {
+                    const upperQuery = searchQuery.toUpperCase();
+                    const isTickerMatch = result.symbol.toUpperCase().startsWith(upperQuery);
+                    return (
+                      <button
+                        key={result.symbol}
+                        onClick={() => handleSelectStock(result.symbol)}
+                        className="w-full flex items-center justify-between p-3 hover:bg-brown-800/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={cn(
+                            "font-bold text-lg",
+                            isTickerMatch ? "text-gold-400" : "text-brown-100"
+                          )}>
+                            {result.symbol}
+                          </span>
+                          <span className="text-brown-400 text-sm truncate max-w-[200px]">
+                            {result.name}
+                          </span>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-brown-500 flex-shrink-0" />
+                      </button>
+                    );
+                  })}
                 </div>
               ) : searchQuery.length > 0 ? (
-                <div className="p-4 text-center text-brown-500">No results found</div>
+                <div className="p-4 text-center text-brown-500">
+                  No results for &quot;{searchQuery}&quot;
+                </div>
               ) : null}
             </div>
           )}
@@ -642,96 +700,202 @@ export default function MarketsPage() {
                       {/* Expiration Selector */}
                       <div className="p-4 border-b border-brown-700">
                         <p className="text-xs text-brown-500 mb-2">Expiration Date</p>
-                        <div className="flex gap-2 flex-wrap">
-                          {expirations.slice(0, 6).map((exp) => (
-                            <button
-                              key={exp}
-                              onClick={() => setSelectedExpiration(exp)}
-                              className={cn(
-                                "px-3 py-1.5 text-xs font-medium rounded-lg transition-colors",
-                                selectedExpiration === exp
-                                  ? "bg-gold-500 text-brown-900"
-                                  : "bg-brown-700/50 text-brown-300 hover:bg-brown-700"
-                              )}
-                            >
-                              {new Date(exp).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                              })}
-                            </button>
-                          ))}
+                        <div className="flex gap-2 overflow-x-auto pb-1">
+                          {expirations.slice(0, 8).map((exp) => {
+                            const expDate = new Date(exp + "T00:00:00");
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            const diffDays = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                            return (
+                              <button
+                                key={exp}
+                                onClick={() => setSelectedExpiration(exp)}
+                                className={cn(
+                                  "px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap flex-shrink-0",
+                                  selectedExpiration === exp
+                                    ? "bg-gold-500 text-brown-900"
+                                    : "bg-brown-700/50 text-brown-300 hover:bg-brown-700"
+                                )}
+                              >
+                                {expDate.toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                })}
+                                <span className="ml-1 opacity-60">({diffDays}d)</span>
+                              </button>
+                            );
+                          })}
                         </div>
+                      </div>
+
+                      {/* Calls / Puts Tab */}
+                      <div className="flex border-b border-brown-700">
+                        <button
+                          onClick={() => setActiveOptionTab("calls")}
+                          className={cn(
+                            "flex-1 py-2.5 text-sm font-medium transition-colors",
+                            activeOptionTab === "calls"
+                              ? "text-emerald-400 border-b-2 border-emerald-400"
+                              : "text-brown-400 hover:text-brown-200"
+                          )}
+                        >
+                          Calls
+                        </button>
+                        <button
+                          onClick={() => setActiveOptionTab("puts")}
+                          className={cn(
+                            "flex-1 py-2.5 text-sm font-medium transition-colors",
+                            activeOptionTab === "puts"
+                              ? "text-rose-400 border-b-2 border-rose-400"
+                              : "text-brown-400 hover:text-brown-200"
+                          )}
+                        >
+                          Puts
+                        </button>
                       </div>
 
                       {isLoadingOptions ? (
                         <div className="p-8 text-center">
                           <Loader2 className="w-6 h-6 text-gold-400 animate-spin mx-auto" />
                         </div>
-                      ) : (
-                        <div className="p-4">
-                          {/* Calls */}
-                          <div className="mb-6">
-                            <h4 className="text-sm font-medium text-emerald-400 mb-2">Calls</h4>
-                            <div className="space-y-2 max-h-48 overflow-y-auto">
-                              {calls.slice(0, 10).map((call) => (
-                                <div
-                                  key={call.symbol}
-                                  className="flex items-center justify-between p-2 bg-brown-800/30 rounded-lg"
-                                >
-                                  <div>
-                                    <p className="font-medium text-brown-100">
-                                      ${call.strike.toFixed(0)} Call
-                                    </p>
-                                    <p className="text-xs text-brown-500">
-                                      Bid: ${call.bid?.toFixed(2) || "—"} / Ask: $
-                                      {call.ask?.toFixed(2) || "—"}
-                                    </p>
-                                  </div>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleCalculate(call, "call")}
-                                    className="bg-gold-500/20 text-gold-400 hover:bg-gold-500/30"
-                                  >
-                                    <Calculator className="w-3 h-3 mr-1" />
-                                    Calculate
-                                  </Button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
+                      ) : (() => {
+                        const isCall = activeOptionTab === "calls";
+                        const rawOptions = isCall ? calls : puts;
+                        const refPrice = optionsCurrentPrice ?? stockQuote?.price ?? 0;
 
-                          {/* Puts */}
-                          <div>
-                            <h4 className="text-sm font-medium text-rose-400 mb-2">Puts</h4>
-                            <div className="space-y-2 max-h-48 overflow-y-auto">
-                              {puts.slice(0, 10).map((put) => (
-                                <div
-                                  key={put.symbol}
-                                  className="flex items-center justify-between p-2 bg-brown-800/30 rounded-lg"
-                                >
-                                  <div>
-                                    <p className="font-medium text-brown-100">
-                                      ${put.strike.toFixed(0)} Put
-                                    </p>
-                                    <p className="text-xs text-brown-500">
-                                      Bid: ${put.bid?.toFixed(2) || "—"} / Ask: $
-                                      {put.ask?.toFixed(2) || "—"}
-                                    </p>
-                                  </div>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleCalculate(put, "put")}
-                                    className="bg-gold-500/20 text-gold-400 hover:bg-gold-500/30"
-                                  >
-                                    <Calculator className="w-3 h-3 mr-1" />
-                                    Calculate
-                                  </Button>
-                                </div>
-                              ))}
+                        // Filter to strikes within ~12% of current price
+                        const filtered = refPrice > 0
+                          ? rawOptions.filter((opt) => {
+                              const pct = Math.abs((opt.strike - refPrice) / refPrice) * 100;
+                              return pct <= 12;
+                            })
+                          : rawOptions;
+
+                        // Sort calls ascending, puts descending (high strikes first for puts)
+                        const sorted = [...filtered].sort((a, b) =>
+                          isCall ? a.strike - b.strike : b.strike - a.strike
+                        );
+
+                        if (sorted.length === 0) {
+                          return (
+                            <div className="p-8 text-center text-brown-500">
+                              No options available
                             </div>
+                          );
+                        }
+
+                        // Find where current price sits for the indicator
+                        let priceInsertIndex = -1;
+                        if (refPrice > 0 && isCall) {
+                          priceInsertIndex = sorted.findIndex((opt) => opt.strike > refPrice);
+                        } else if (refPrice > 0 && !isCall) {
+                          priceInsertIndex = sorted.findIndex((opt) => opt.strike < refPrice);
+                        }
+
+                        return (
+                          <div className="divide-y divide-brown-700/30 max-h-[420px] overflow-y-auto">
+                            {/* Column Headers */}
+                            <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-4 py-2 text-[10px] uppercase tracking-wider text-brown-500 sticky top-0 bg-brown-800/90 backdrop-blur-sm z-10">
+                              <span>Strike</span>
+                              <span className="text-right w-16">Breakeven</span>
+                              <span className="text-right w-16">Change</span>
+                              <span className="text-right w-20">Ask</span>
+                            </div>
+
+                            {sorted.map((opt, idx) => {
+                              const ask = opt.ask || 0;
+                              const breakeven = isCall
+                                ? opt.strike + ask
+                                : opt.strike - ask;
+                              const toBreakevenPct = refPrice > 0
+                                ? ((breakeven - refPrice) / refPrice) * 100
+                                : 0;
+                              const isITM = isCall
+                                ? opt.strike < refPrice
+                                : opt.strike > refPrice;
+                              const isNearATM = refPrice > 0 && Math.abs((opt.strike - refPrice) / refPrice) < 0.015;
+
+                              const showPriceLine = priceInsertIndex === idx;
+
+                              return (
+                                <div key={opt.symbol}>
+                                  {showPriceLine && (
+                                    <div className="flex items-center gap-2 px-4 py-1.5">
+                                      <div className="flex-1 h-px bg-gold-400/60" />
+                                      <span className="text-[11px] font-medium text-gold-400 bg-gold-400/10 px-2 py-0.5 rounded-full">
+                                        ${refPrice.toFixed(2)}
+                                      </span>
+                                      <div className="flex-1 h-px bg-gold-400/60" />
+                                    </div>
+                                  )}
+                                  <button
+                                    onClick={() => handleCalculate(opt, isCall ? "call" : "put")}
+                                    className={cn(
+                                      "w-full grid grid-cols-[1fr_auto_auto_auto] gap-2 items-center px-4 py-3 hover:bg-brown-700/30 transition-colors",
+                                      isNearATM && "bg-gold-400/5",
+                                      isITM && "bg-emerald-500/5"
+                                    )}
+                                  >
+                                    {/* Strike */}
+                                    <div className="text-left">
+                                      <span className={cn(
+                                        "font-semibold text-sm",
+                                        isNearATM ? "text-gold-400" : "text-brown-100"
+                                      )}>
+                                        ${opt.strike.toFixed(2)}
+                                      </span>
+                                      {isNearATM && (
+                                        <span className="ml-1.5 text-[10px] text-gold-400/70 font-medium">ATM</span>
+                                      )}
+                                    </div>
+
+                                    {/* Breakeven + To Breakeven */}
+                                    <div className="text-right w-16">
+                                      <p className="text-xs text-brown-200">${breakeven.toFixed(2)}</p>
+                                      <p className={cn(
+                                        "text-[10px]",
+                                        (isCall ? toBreakevenPct >= 0 : toBreakevenPct <= 0)
+                                          ? "text-brown-500"
+                                          : "text-emerald-400"
+                                      )}>
+                                        {toBreakevenPct >= 0 ? "+" : ""}{toBreakevenPct.toFixed(1)}%
+                                      </p>
+                                    </div>
+
+                                    {/* Change */}
+                                    <div className="text-right w-16">
+                                      <p className={cn(
+                                        "text-xs font-medium",
+                                        (opt.change || 0) >= 0 ? "text-emerald-400" : "text-rose-400"
+                                      )}>
+                                        {(opt.change || 0) >= 0 ? "+" : ""}${(opt.change || 0).toFixed(2)}
+                                      </p>
+                                      <p className={cn(
+                                        "text-[10px]",
+                                        (opt.changePercent || 0) >= 0 ? "text-emerald-400" : "text-rose-400"
+                                      )}>
+                                        {(opt.changePercent || 0) >= 0 ? "+" : ""}{(opt.changePercent || 0).toFixed(1)}%
+                                      </p>
+                                    </div>
+
+                                    {/* Ask Price */}
+                                    <div className="text-right w-20">
+                                      <span className={cn(
+                                        "inline-block px-2.5 py-1 rounded-md text-xs font-semibold border",
+                                        isITM
+                                          ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/10"
+                                          : "border-brown-600 text-brown-200 bg-brown-700/30"
+                                      )}>
+                                        ${ask.toFixed(2)}
+                                      </span>
+                                    </div>
+                                  </button>
+                                </div>
+                              );
+                            })}
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   )}
                 </>
@@ -874,6 +1038,11 @@ export default function MarketsPage() {
             </div>
           )}
         </div>
+
+        {/* Disclaimer */}
+        <p className="text-center text-xs text-brown-600 pb-2">
+          Market data may be delayed up to 15 minutes. Not intended as financial advice.
+        </p>
       </div>
     </div>
   );

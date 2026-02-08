@@ -8,7 +8,6 @@ import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText,
-  CandlestickChart,
   ChevronRight,
   TrendingUp,
   TrendingDown,
@@ -16,7 +15,12 @@ import {
   Sparkles,
 } from "lucide-react";
 import Logo from "@/components/shared/Logo";
-import { useTrades } from "@/hooks/useUserData";
+import StreakBanner from "@/components/home/StreakBanner";
+import RiskScorecard from "@/components/home/RiskScorecard";
+import GoalsCard from "@/components/home/GoalsCard";
+import GoalsModal from "@/components/home/GoalsModal";
+import { useTrades, useGoals } from "@/hooks/useUserData";
+import { useTimezone } from "@/contexts/TimezoneContext";
 
 // Dynamic import for the chart to avoid SSR issues
 const AccountSummaryChart = dynamic(
@@ -29,13 +33,6 @@ const AccountSummaryChart = dynamic(
   }
 );
 
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
-
 export default function Home() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
@@ -46,20 +43,28 @@ export default function Home() {
 
   // Get trades data
   const { trades, totalPnL, loading: tradesLoading } = useTrades();
+  const { goals, loading: goalsLoading, addGoal, deleteGoal } = useGoals();
+  const [showGoalsModal, setShowGoalsModal] = useState(false);
+  const { getCurrentHour, getToday } = useTimezone();
 
-  const greeting = getGreeting();
+  const greeting = useMemo(() => {
+    const hour = getCurrentHour();
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
+  }, [getCurrentHour]);
   const firstName = user?.firstName || "Trader";
 
-  // Calculate today's change (trades from today)
+  // Calculate today's change (trades from today) using timezone-aware date
   const todayChange = useMemo(() => {
-    const today = new Date().toDateString();
+    const todayStr = getToday(); // "YYYY-MM-DD" in user's timezone
     const todayTrades = trades.filter(
-      (t) => new Date(t.trade_date).toDateString() === today
+      (t) => t.trade_date && t.trade_date.split("T")[0] === todayStr
     );
     const todayPnL = todayTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
     const percentage = totalPnL !== 0 ? (todayPnL / Math.abs(totalPnL)) * 100 : 0;
     return { value: todayPnL, percentage };
-  }, [trades, totalPnL]);
+  }, [trades, totalPnL, getToday]);
 
   // Get recent trades for the journal preview (last 4)
   const recentTrades = useMemo(() => {
@@ -164,6 +169,11 @@ export default function Home() {
           </h1>
           <div className="w-16 h-1 bg-gradient-to-r from-gold-400 to-gold-600 rounded-full mt-2" />
         </motion.div>
+
+        {/* Streak Banner */}
+        {!tradesLoading && trades.length > 0 && (
+          <StreakBanner trades={trades} />
+        )}
 
         {/* Account Summary Card */}
         <motion.div
@@ -308,79 +318,35 @@ export default function Home() {
             </Link>
           </motion.div>
 
-          {/* Strategy Builder Card */}
+          {/* Goals Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.3 }}
           >
-            <Link href="/portfolio">
-              <div className="h-full relative overflow-hidden rounded-xl border border-brown-700/50 bg-gradient-to-br from-brown-800/60 to-brown-900/60 backdrop-blur-xl hover:border-gold-500/30 transition-all group">
-                <div className="absolute inset-0 bg-gradient-to-br from-gold-400/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-
-                <div className="relative p-4">
-                  {/* Header */}
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-2 bg-brown-700/50 rounded-lg group-hover:bg-gold-500/20 transition-colors">
-                      <CandlestickChart className="w-5 h-5 text-brown-300 group-hover:text-gold-400 transition-colors" />
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-brown-500 group-hover:text-gold-400 transition-colors" />
-                  </div>
-
-                  <h3 className="font-semibold text-brown-100 mb-3">Strategy Builder</h3>
-
-                  {/* Strategy visualization */}
-                  <div className="flex items-end justify-center gap-1 h-16 mb-2">
-                    {/* Candlestick visualization */}
-                    <div className="flex flex-col items-center">
-                      <div className="w-0.5 h-3 bg-emerald-400/60" />
-                      <div className="w-2 h-5 bg-emerald-400 rounded-sm" />
-                      <div className="w-0.5 h-2 bg-emerald-400/60" />
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <div className="w-0.5 h-2 bg-rose-400/60" />
-                      <div className="w-2 h-6 bg-rose-400 rounded-sm" />
-                      <div className="w-0.5 h-3 bg-rose-400/60" />
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <div className="w-0.5 h-4 bg-emerald-400/60" />
-                      <div className="w-2 h-4 bg-emerald-400 rounded-sm" />
-                      <div className="w-0.5 h-2 bg-emerald-400/60" />
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <div className="w-0.5 h-2 bg-emerald-400/60" />
-                      <div className="w-2 h-7 bg-emerald-400 rounded-sm" />
-                      <div className="w-0.5 h-1 bg-emerald-400/60" />
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <div className="w-0.5 h-3 bg-rose-400/60" />
-                      <div className="w-2 h-4 bg-rose-400 rounded-sm" />
-                      <div className="w-0.5 h-4 bg-rose-400/60" />
-                    </div>
-                  </div>
-
-                  {/* Strategy types */}
-                  <div className="flex flex-wrap gap-1">
-                    <span className="text-[10px] px-1.5 py-0.5 bg-brown-700/50 text-brown-400 rounded">
-                      Calls
-                    </span>
-                    <span className="text-[10px] px-1.5 py-0.5 bg-brown-700/50 text-brown-400 rounded">
-                      Puts
-                    </span>
-                    <span className="text-[10px] px-1.5 py-0.5 bg-brown-700/50 text-brown-400 rounded">
-                      Spreads
-                    </span>
-                  </div>
-
-                  {/* CTA */}
-                  <p className="text-xs text-gold-400 mt-3 group-hover:text-gold-300 transition-colors">
-                    Build Strategy
-                  </p>
-                </div>
-              </div>
-            </Link>
+            <GoalsCard
+              goals={goals}
+              trades={trades}
+              loading={goalsLoading}
+              onClick={() => setShowGoalsModal(true)}
+            />
           </motion.div>
         </div>
+
+        {/* Risk Scorecard - Full Width */}
+        {!tradesLoading && trades.length > 0 && (
+          <RiskScorecard trades={trades} />
+        )}
+
+        {/* Goals Modal */}
+        <GoalsModal
+          isOpen={showGoalsModal}
+          onClose={() => setShowGoalsModal(false)}
+          goals={goals}
+          trades={trades}
+          onAddGoal={addGoal}
+          onDeleteGoal={deleteGoal}
+        />
       </div>
     </div>
   );

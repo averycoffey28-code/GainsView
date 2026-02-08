@@ -36,9 +36,9 @@ export default clerkMiddleware(async (auth, req) => {
       return NextResponse.redirect(signInUrl);
     }
 
-    // Check if user is admin
+    // Check if user is admin (case-insensitive email comparison)
     const userEmail = sessionClaims?.email as string | undefined;
-    if (userEmail !== ADMIN_EMAIL) {
+    if (!userEmail || userEmail.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
       return NextResponse.redirect(new URL("/", req.url));
     }
   }

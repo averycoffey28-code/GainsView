@@ -4,7 +4,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface LogoProps {
-  size?: "hero" | "large" | "medium" | "small" | "tiny";
+  size?: "hero" | "large" | "header" | "medium" | "small" | "nav" | "tiny";
   showText?: boolean;
   className?: string;
   glow?: boolean;
@@ -12,13 +12,14 @@ interface LogoProps {
   priority?: boolean;
 }
 
-// Logo size system - PROMINENT and PROUD
 const sizeMap = {
-  hero: { mobile: 120, desktop: 200, text: "text-3xl", glowScale: "scale-125", glowBlur: "blur-3xl" },
-  large: { mobile: 80, desktop: 96, text: "text-2xl", glowScale: "scale-115", glowBlur: "blur-2xl" },
-  medium: { mobile: 56, desktop: 64, text: "text-xl", glowScale: "scale-110", glowBlur: "blur-xl" },
-  small: { mobile: 40, desktop: 48, text: "text-lg", glowScale: "scale-110", glowBlur: "blur-lg" },
-  tiny: { mobile: 32, desktop: 32, text: "text-base", glowScale: "scale-105", glowBlur: "blur-md" },
+  hero: { mobile: 120, desktop: 180, text: "text-3xl" },
+  large: { mobile: 80, desktop: 96, text: "text-2xl" },
+  header: { mobile: 58, desktop: 68, text: "text-xl" },
+  medium: { mobile: 40, desktop: 48, text: "text-xl" },
+  small: { mobile: 36, desktop: 40, text: "text-lg" },
+  nav: { mobile: 28, desktop: 32, text: "text-base" },
+  tiny: { mobile: 20, desktop: 24, text: "text-sm" },
 };
 
 export default function Logo({
@@ -29,58 +30,67 @@ export default function Logo({
   animate = false,
   priority = false,
 }: LogoProps) {
-  const { mobile, desktop, text, glowScale, glowBlur } = sizeMap[size];
+  const { mobile, desktop, text } = sizeMap[size];
+
+  // The source image has ~60% transparent whitespace around the bull.
+  // We render the image 2.2x larger inside a fixed-size container with
+  // overflow-hidden to clip the whitespace. The drop-shadow filter goes
+  // on the container so it follows the clipped bull shape without being
+  // clipped itself. Using a large width/height (256) + quality={100}
+  // ensures crisp rendering on retina displays.
+  const glowFilter = glow
+    ? "drop-shadow(0 0 8px rgba(212,175,55,0.4)) drop-shadow(0 0 16px rgba(212,175,55,0.2))"
+    : undefined;
+
+  const mobileImgSize = Math.round(mobile * 2.2);
+  const desktopImgSize = Math.round(desktop * 2.2);
 
   return (
-    <div className={cn("flex flex-col items-center gap-2", className)}>
+    <div className={cn("flex items-center gap-3 shrink-0", className)}>
+      {/* Mobile logo */}
       <div
         className={cn(
-          "relative",
-          glow && "drop-shadow-[0_0_30px_rgba(212,175,55,0.4)]",
-          animate && "animate-pulse"
+          "shrink-0 overflow-hidden flex items-center justify-center md:hidden self-center",
+          animate && "animate-[fadeIn_0.5s_ease-out]"
         )}
+        style={{ width: mobile, height: mobile, filter: glowFilter }}
       >
-        {/* Gold glow background effect */}
-        {glow && (
-          <div
-            className={cn(
-              "absolute inset-0 opacity-40 bg-gold-400 rounded-full",
-              glowBlur,
-              glowScale
-            )}
-          />
-        )}
-        {/* Mobile logo */}
         <Image
           src="/images/logo.png"
           alt="GainsView"
-          width={mobile}
-          height={mobile}
-          className={cn(
-            "relative z-10 object-contain md:hidden",
-            animate && "animate-[fadeIn_0.5s_ease-out]"
-          )}
+          width={256}
+          height={256}
+          quality={100}
+          className="max-w-none object-contain"
+          style={{ width: mobileImgSize, height: mobileImgSize, transform: "translateY(8px)" }}
           priority={priority}
           loading={priority ? undefined : "lazy"}
         />
-        {/* Desktop logo */}
+      </div>
+      {/* Desktop logo */}
+      <div
+        className={cn(
+          "shrink-0 overflow-hidden items-center justify-center hidden md:flex self-center",
+          animate && "animate-[fadeIn_0.5s_ease-out]"
+        )}
+        style={{ width: desktop, height: desktop, filter: glowFilter }}
+      >
         <Image
           src="/images/logo.png"
           alt="GainsView"
-          width={desktop}
-          height={desktop}
-          className={cn(
-            "relative z-10 object-contain hidden md:block",
-            animate && "animate-[fadeIn_0.5s_ease-out]"
-          )}
+          width={256}
+          height={256}
+          quality={100}
+          className="max-w-none object-contain"
+          style={{ width: desktopImgSize, height: desktopImgSize, transform: "translateY(8px)" }}
           priority={priority}
           loading={priority ? undefined : "lazy"}
         />
       </div>
       {showText && (
-        <h1 className={cn("font-bold text-brown-50 tracking-tight", text)}>
+        <span className={cn("font-bold text-brown-50 tracking-tight", text)}>
           GainsView
-        </h1>
+        </span>
       )}
     </div>
   );

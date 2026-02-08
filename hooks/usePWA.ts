@@ -96,7 +96,6 @@ export function usePWA() {
   }, [deferredPrompt]);
 
   const dismissPrompt = useCallback(() => {
-    // Track that user dismissed, show again after some visits
     const dismissCount = parseInt(
       localStorage.getItem("pwa-dismiss-count") || "0"
     );
@@ -104,18 +103,19 @@ export function usePWA() {
     localStorage.setItem("pwa-last-dismiss", Date.now().toString());
   }, []);
 
+  const dismissPermanently = useCallback(() => {
+    localStorage.setItem("pwa-last-dismiss", "permanent");
+  }, []);
+
   const shouldShowPrompt = useCallback(() => {
     // Don't show if already installed or in standalone mode
     if (pwaState.isInstalled || pwaState.isStandalone) return false;
 
-    // Check visit count
-    const visitCount = parseInt(localStorage.getItem("pwa-visit-count") || "0");
-
-    // Show after 2nd visit
-    if (visitCount < 2) return false;
+    // Check if permanently dismissed
+    const lastDismiss = localStorage.getItem("pwa-last-dismiss");
+    if (lastDismiss === "permanent") return false;
 
     // Check last dismiss time (don't show for 7 days after dismiss)
-    const lastDismiss = localStorage.getItem("pwa-last-dismiss");
     if (lastDismiss) {
       const daysSinceDismiss =
         (Date.now() - parseInt(lastDismiss)) / (1000 * 60 * 60 * 24);
@@ -135,6 +135,7 @@ export function usePWA() {
     ...pwaState,
     promptInstall,
     dismissPrompt,
+    dismissPermanently,
     shouldShowPrompt,
     canPrompt: !!deferredPrompt,
   };

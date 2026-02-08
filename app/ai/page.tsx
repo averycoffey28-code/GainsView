@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { usePositions, useTrades, useChatHistory } from "@/hooks/useUserData";
+import { useTimezone } from "@/contexts/TimezoneContext";
 import { cn } from "@/lib/utils";
 
 interface Message {
@@ -72,6 +73,7 @@ export default function AIPage() {
   const { positions } = usePositions();
   const { trades, totalPnL } = useTrades();
   const { messages: savedMessages, addMessage, clearHistory } = useChatHistory();
+  const { getToday, getTimezoneAbbreviation } = useTimezone();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");

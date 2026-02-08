@@ -161,6 +161,61 @@
   --sidebar-ring: var(--gold-400);
 }
 
+/* Light Mode - Remap the brown/gold palette so all existing
+   Tailwind classes (bg-brown-950, text-brown-50, etc.)
+   automatically produce light-mode colors */
+.light {
+  /* Invert the brown scale: darkest becomes lightest */
+  --brown-950: #F8F4EF;
+  --brown-900: #F0EBE3;
+  --brown-800: #E8E2D8;
+  --brown-700: #D4CCC0;
+  --brown-600: #B8AEA0;
+  --brown-500: #8B7E70;
+  --brown-400: #6B5C4D;
+  --brown-300: #4A3D32;
+  --brown-200: #352A22;
+  --brown-100: #2A2018;
+  --brown-50: #1A1410;
+
+  /* Gold - slightly darker for contrast on light backgrounds */
+  --gold-50: #4D3D28;
+  --gold-100: #6B5536;
+  --gold-200: #8A6E45;
+  --gold-300: #A8895C;
+  --gold-400: #B8960C;
+  --gold-500: #A88508;
+  --gold-600: #8A6E05;
+  --gold-700: #F0DDB0;
+  --gold-800: #F8EED8;
+  --gold-900: #FDF8F0;
+
+  /* Shadcn semantic variables - explicit for light mode */
+  --background: #F5F0E8;
+  --foreground: #1A1410;
+  --card: #FFFFFF;
+  --card-foreground: #1A1410;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A1410;
+  --primary: #B8960C;
+  --primary-foreground: #FFFFFF;
+  --secondary: #E8E0D4;
+  --secondary-foreground: #2A2018;
+  --muted: #E8E0D4;
+  --muted-foreground: #6B5C4D;
+  --accent: #F0EBE3;
+  --accent-foreground: #1A1410;
+  --destructive: #DC2626;
+  --border: #D4CCC0;
+  --input: #D4CCC0;
+  --ring: #B8960C;
+  --chart-1: #B8960C;
+  --chart-2: #16A34A;
+  --chart-3: #DC2626;
+  --chart-4: #8A6E05;
+  --chart-5: #6B5C4D;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -186,7 +241,25 @@
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: var(--gold-700);
+  background: #8A6E45;
+}
+
+.light ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.light ::-webkit-scrollbar-track {
+  background: #F0EBE3;
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: #D4CCC0;
+  border-radius: 4px;
+}
+
+.light ::-webkit-scrollbar-thumb:hover {
+  background: #B8AEA0;
 }
 
 /* Shimmer animation for skeleton loaders */
@@ -284,6 +357,21 @@ body {
   img {
     -webkit-touch-callout: none;
   }
+}
+
+/* Recharts - prevent white selection box on click/drag */
+.recharts-wrapper {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+.recharts-surface {
+  outline: none !important;
+}
+
+.recharts-brush,
+.recharts-brush-slide {
+  display: none !important;
 }
 
 /* PWA - Touch feedback for mobile */

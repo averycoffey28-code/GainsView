@@ -90,6 +90,28 @@ CREATE TABLE IF NOT EXISTS user_settings (
 -- ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS experience_level TEXT;
 -- ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS risk_acknowledged BOOLEAN DEFAULT false;
 
+-- Migration: Add market disclaimer column
+ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS market_disclaimer_acknowledged BOOLEAN DEFAULT false;
+
+-- Migration: Add push notification columns
+ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS push_endpoint TEXT;
+ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS push_p256dh TEXT;
+ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS push_auth TEXT;
+ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS push_reminder_time TEXT DEFAULT '16:15';
+
+-- Goals (profit targets)
+CREATE TABLE IF NOT EXISTS goals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  label TEXT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('weekly', 'monthly', 'yearly', 'custom')),
+  target DECIMAL NOT NULL,
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'completed', 'failed', 'archived')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS positions_user_id_idx ON positions(user_id);
 CREATE INDEX IF NOT EXISTS positions_symbol_idx ON positions(symbol);
@@ -98,3 +120,5 @@ CREATE INDEX IF NOT EXISTS trades_user_id_idx ON trades(user_id);
 CREATE INDEX IF NOT EXISTS trades_trade_date_idx ON trades(trade_date);
 CREATE INDEX IF NOT EXISTS chat_history_user_id_idx ON chat_history(user_id);
 CREATE INDEX IF NOT EXISTS users_clerk_id_idx ON users(clerk_id);
+CREATE INDEX IF NOT EXISTS goals_user_id_idx ON goals(user_id);
+CREATE INDEX IF NOT EXISTS goals_status_idx ON goals(status);
