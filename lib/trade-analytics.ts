@@ -255,3 +255,87 @@ export function computeTickerLeaderboard(trades: Trade[]): TickerStat[] {
     .sort((a, b) => b.pnl - a.pnl);
 }
 
+// ─── Time of Day Analysis ───────────────────────────────────────────────────
+
+export interface TimeOfDayStat {
+  label: string;
+  range: string;
+  pnl: number;
+  tradeCount: number;
+  winRate: number;
+  isBest: boolean;
+  isWorst: boolean;
+}
+
+const TIME_BUCKETS = [
+  { label: "Pre-Market", start: 4, end: 9.5 },      // 4:00 AM - 9:30 AM
+  { label: "Open", start: 9.5, end: 10.5 },          // 9:30 AM - 10:30 AM
+  { label: "Mid-Morning", start: 10.5, end: 12 },    // 10:30 AM - 12:00 PM
+  { label: "Lunch", start: 12, end: 14 },            // 12:00 PM - 2:00 PM
+  { label: "Afternoon", start: 14, end: 15.5 },      // 2:00 PM - 3:30 PM
+  { label: "Power Hour", start: 15.5, end: 16 },     // 3:30 PM - 4:00 PM
+  { label: "After Hours", start: 16, end: 20 },      // 4:00 PM - 8:00 PM
+];
+
+/**
+ * Compute time-of-day statistics based on the created_at timestamp.
+ * NOTE: This uses the logging time, not the actual trade execution time.
+ */
+export function computeTimeOfDayStats(trades: Trade[]): TimeOfDayStat[] {
+  const buckets: { pnl: number; count: number; wins: number }[] = TIME_BUCKETS.map(() => ({
+    pnl: 0,
+    count: 0,
+    wins: 0,
+  }));
+
+  for (const t of trades) {
+    if (!t.created_at) continue;
+
+    const date = new Date(t.created_at);
+    const hour = date.getHours() + date.getMinutes() / 60;
+
+    // Find matching bucket
+    const bucketIdx = TIME_BUCKETS.findIndex(
+      (b) => hour >= b.start && hour < b.end
+    );
+
+    if (bucketIdx >= 0) {
+      const pnl = parsePnL(t.pnl);
+      buckets[bucketIdx].pnl += pnl;
+      buckets[bucketIdx].count++;
+      if (pnl > 0) buckets[bucketIdx].wins++;
+    }
+  }
+
+  // Find best and worst buckets (only among those with trades)
+  let bestIdx = -1;
+  let worstIdx = -1;
+  let bestPnl = -Infinity;
+  let worstPnl = Infinity;
+
+  buckets.forEach((b, i) => {
+    if (b.count > 0) {
+      if (b.pnl > bestPnl) { bestPnl = b.pnl; bestIdx = i; }
+      if (b.pnl < worstPnl) { worstPnl = b.pnl; worstIdx = i; }
+    }
+  });
+
+  const formatHour = (h: number): string => {
+    const hour = Math.floor(h);
+    const min = Math.round((h - hour) * 60);
+    const period = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+    return min === 0 ? `${displayHour}${period}` : `${displayHour}:${min.toString().padStart(2, "0")}${period}`;
+  };
+
+  return TIME_BUCKETS.map((bucket, i) => ({
+    label: bucket.label,
+    range: `${formatHour(bucket.start)} - ${formatHour(bucket.end)}`,
+    pnl: Math.round(buckets[i].pnl * 100) / 100,
+    tradeCount: buckets[i].count,
+    winRate: buckets[i].count > 0 ? Math.round((buckets[i].wins / buckets[i].count) * 100) : 0,
+    isBest: i === bestIdx,
+    isWorst: i === worstIdx,
+  }));
+}
+

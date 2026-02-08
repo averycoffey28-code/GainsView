@@ -34,6 +34,7 @@ import Logo from "@/components/shared/Logo";
 import ImportTradesModal from "@/components/ImportTradesModal";
 import DayOfWeekHeatmap from "@/components/pnl/DayOfWeekHeatmap";
 import TickerLeaderboard from "@/components/pnl/TickerLeaderboard";
+import TimeOfDayAnalysis from "@/components/pnl/TimeOfDayAnalysis";
 import SocialShareModal, { DayShareData, TradeShareData } from "@/components/pnl/SocialShareModal";
 import PnLOnboarding from "@/components/pnl/PnLOnboarding";
 import BatchScreenshotUpload from "@/components/pnl/BatchScreenshotUpload";
@@ -620,41 +621,50 @@ export default function PnLPage() {
           <div className="flex gap-2 w-full">
             {/* Import Dropdown */}
             <div className="relative flex-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowImportDropdown(!showImportDropdown)}
-                className="w-full border-brown-700 text-brown-300 hover:bg-brown-800 text-xs justify-center"
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowImportDropdown(!showImportDropdown);
+                }}
+                className="w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-md border border-brown-700 bg-transparent text-brown-300 hover:bg-brown-800 active:bg-brown-700 text-xs font-medium transition-colors touch-manipulation"
               >
-                <Upload className="w-4 h-4 mr-1.5" />
+                <Upload className="w-4 h-4" />
                 Import
-                <ChevronDown className="w-3 h-3 ml-1" />
-              </Button>
+                <ChevronDown className={cn("w-3 h-3 transition-transform", showImportDropdown && "rotate-180")} />
+              </button>
               {showImportDropdown && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowImportDropdown(false)} />
-                  <div className="absolute left-0 right-0 sm:left-auto sm:right-0 sm:w-48 mt-1 bg-brown-900 border border-brown-700 rounded-lg shadow-xl z-50 overflow-hidden">
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowImportDropdown(false)}
+                    onTouchEnd={() => setShowImportDropdown(false)}
+                  />
+                  <div className="absolute left-0 right-0 sm:left-auto sm:right-0 sm:w-52 mt-1 bg-brown-900 border border-brown-700 rounded-lg shadow-2xl z-50 overflow-hidden">
                     <button
+                      type="button"
                       onClick={() => {
                         setShowImportDropdown(false);
                         setShowImportModal(true);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-brown-200 hover:bg-brown-800 active:bg-brown-700"
+                      className="w-full flex items-center gap-3 px-4 py-3.5 text-sm text-brown-200 hover:bg-brown-800 active:bg-brown-700 touch-manipulation"
                     >
                       <Upload className="w-4 h-4 text-brown-400" />
                       Import CSV
                     </button>
-                    <label className="w-full flex items-center gap-3 px-4 py-3 text-sm text-brown-200 hover:bg-brown-800 active:bg-brown-700 cursor-pointer">
+                    <label className="w-full flex items-center gap-3 px-4 py-3.5 text-sm text-brown-200 hover:bg-brown-800 active:bg-brown-700 cursor-pointer touch-manipulation">
                       <Camera className="w-4 h-4 text-gold-400" />
                       Upload Screenshot
                       <input type="file" accept="image/*" onChange={handleScreenshotUpload} className="hidden" />
                     </label>
                     <button
+                      type="button"
                       onClick={() => {
                         setShowImportDropdown(false);
                         setShowBatchModal(true);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-brown-200 hover:bg-brown-800 active:bg-brown-700 border-t border-brown-700/50"
+                      className="w-full flex items-center gap-3 px-4 py-3.5 text-sm text-brown-200 hover:bg-brown-800 active:bg-brown-700 border-t border-brown-700/50 touch-manipulation"
                     >
                       <ImageIcon className="w-4 h-4 text-gold-400" />
                       Batch Screenshots
@@ -1023,6 +1033,7 @@ export default function PnLPage() {
               <DayOfWeekHeatmap trades={trades} />
               <TickerLeaderboard trades={trades} />
             </div>
+            <TimeOfDayAnalysis trades={trades} />
           </div>
         )}
 
