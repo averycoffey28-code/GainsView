@@ -125,6 +125,7 @@ export default function PnLPage() {
   const [shareMode, setShareMode] = useState<"overview" | "day" | "trade">("overview");
   const [shareDayData, setShareDayData] = useState<DayShareData | null>(null);
   const [shareTradeData, setShareTradeData] = useState<TradeShareData | null>(null);
+  const [shareWeekData, setShareWeekData] = useState<WeekData | null>(null);
 
   // Screenshot state
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
@@ -680,6 +681,7 @@ export default function PnLPage() {
                 setShareMode("overview");
                 setShareDayData(null);
                 setShareTradeData(null);
+                setShareWeekData(null);
                 setShowShareModal(true);
               }}
               disabled={trades.length === 0}
@@ -1342,6 +1344,7 @@ export default function PnLPage() {
                     onClick={() => {
                       setShowWeekModal(false);
                       setShareMode("overview");
+                      setShareWeekData(selectedWeek);
                       setShowShareModal(true);
                     }}
                     variant="ghost"
@@ -1710,6 +1713,7 @@ export default function PnLPage() {
           onClose={() => setShowShareModal(false)}
           trades={trades}
           period="weekly"
+          weekData={shareWeekData}
           mode={shareMode}
           dayData={shareDayData}
           tradeData={shareTradeData}
