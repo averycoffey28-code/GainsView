@@ -81,21 +81,21 @@ interface ExtractedTrade {
   isProfit: boolean;
 }
 
-// Format P&L for display in calendar cells (full amount with cents)
-const formatCellPnL = (amount: number): string => {
+// Format P&L for desktop (full amount with cents)
+const formatPnLDesktop = (amount: number): string => {
   const abs = Math.abs(amount);
   const sign = amount > 0 ? "+" : amount < 0 ? "-" : "";
   return `${sign}$${abs.toFixed(2)}`;
 };
 
-// Format P&L for weekly summary cells (compact format)
-const formatWeeklyPnL = (amount: number): string => {
+// Format P&L for mobile (compact - no cents, k format for 1000+)
+const formatPnLMobile = (amount: number): string => {
   const abs = Math.abs(amount);
   const sign = amount > 0 ? "+" : amount < 0 ? "-" : "";
   if (abs >= 1000) {
-    return `${sign}$${(abs / 1000).toFixed(abs >= 10000 ? 0 : 1)}k`;
+    return `${sign}$${(abs / 1000).toFixed(1)}k`;
   }
-  return `${sign}$${abs.toFixed(2)}`;
+  return `${sign}$${Math.round(abs)}`;
 };
 
 export default function PnLPage() {
@@ -690,44 +690,50 @@ export default function PnLPage() {
         {/* Stats Cards - 2x2 Grid */}
         <div className="grid grid-cols-2 gap-3">
           <Card className="bg-brown-800/50 border-brown-700/50">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-1.5 text-brown-500 mb-1">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-1.5 text-brown-400 mb-1">
                 <DollarSign className="w-3.5 h-3.5" />
-                <span className="text-[10px] uppercase tracking-wide">Total P&L</span>
+                <span className="text-sm font-semibold uppercase tracking-wider">Total P&L</span>
               </div>
-              <p className={cn("text-xl font-bold", stats.totalPnL >= 0 ? "text-emerald-400" : "text-red-400")}>
-                {stats.totalPnL >= 0 ? "+" : ""}${Math.abs(stats.totalPnL).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              <p className={cn(
+                "text-3xl md:text-4xl font-bold",
+                stats.totalPnL >= 0 ? "text-emerald-400" : "text-red-400"
+              )}>
+                {stats.totalPnL >= 0 ? "+" : "-"}${Math.abs(stats.totalPnL).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
             </CardContent>
           </Card>
           <Card className="bg-brown-800/50 border-brown-700/50">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-1.5 text-brown-500 mb-1">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-1.5 text-brown-400 mb-1">
                 <Calendar className="w-3.5 h-3.5" />
-                <span className="text-[10px] uppercase tracking-wide">This Month</span>
+                <span className="text-sm font-semibold uppercase tracking-wider">This Month</span>
               </div>
-              <p className={cn("text-xl font-bold", stats.thisMonthPnL >= 0 ? "text-emerald-400" : "text-red-400")}>
-                {stats.thisMonthPnL >= 0 ? "+" : ""}${Math.abs(stats.thisMonthPnL).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              <p className={cn(
+                "text-3xl md:text-4xl font-bold",
+                stats.thisMonthPnL >= 0 ? "text-emerald-400" : "text-red-400"
+              )}>
+                {stats.thisMonthPnL >= 0 ? "+" : "-"}${Math.abs(stats.thisMonthPnL).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
             </CardContent>
           </Card>
           <Card className="bg-brown-800/50 border-brown-700/50">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-1.5 text-brown-500 mb-1">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-1.5 text-brown-400 mb-1">
                 <Percent className="w-3.5 h-3.5" />
-                <span className="text-[10px] uppercase tracking-wide">Win Rate</span>
+                <span className="text-sm font-semibold uppercase tracking-wider">Win Rate</span>
               </div>
-              <p className="text-xl font-bold text-brown-100">{stats.winRate.toFixed(0)}%</p>
-              <p className="text-[10px] text-brown-500">{stats.wins}W / {stats.losses}L</p>
+              <p className="text-3xl md:text-4xl font-bold text-brown-100">{stats.winRate.toFixed(0)}%</p>
+              <p className="text-sm md:text-base text-brown-500">{stats.wins}W / {stats.losses}L</p>
             </CardContent>
           </Card>
           <Card className="bg-brown-800/50 border-brown-700/50">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-1.5 text-brown-500 mb-1">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-1.5 text-brown-400 mb-1">
                 <Target className="w-3.5 h-3.5" />
-                <span className="text-[10px] uppercase tracking-wide">Avg W/L</span>
+                <span className="text-sm font-semibold uppercase tracking-wider">Avg W/L</span>
               </div>
-              <p className="text-lg font-bold">
+              <p className="text-2xl md:text-3xl font-bold">
                 <span className="text-emerald-400">+${stats.avgWin.toFixed(0)}</span>
                 <span className="text-brown-500 mx-1">/</span>
                 <span className="text-red-400">-${stats.avgLoss.toFixed(0)}</span>
@@ -804,9 +810,9 @@ export default function PnLPage() {
               </div>
 
               {/* Day Headers */}
-              <div className="grid grid-cols-7 gap-1.5 mb-2">
+              <div className="grid grid-cols-7 gap-1 mb-1">
                 {weekDays.map((day, i) => (
-                  <div key={i} className="text-center text-sm text-brown-500 font-medium py-1">
+                  <div key={i} className="text-center text-[10px] sm:text-xs md:text-sm text-brown-500 font-medium py-1">
                     {day}
                   </div>
                 ))}
@@ -831,9 +837,9 @@ export default function PnLPage() {
                         return (
                           <div
                             key={day.date}
-                            className="min-h-[80px] md:min-h-[100px] flex flex-col items-start justify-start p-2"
+                            className="min-h-[60px] md:min-h-[100px] flex flex-col items-center justify-center p-1"
                           >
-                            <span className="text-sm text-brown-600">
+                            <span className="text-[10px] sm:text-xs md:text-sm text-brown-600">
                               {parseLocalDate(day.date).getDate()}
                             </span>
                           </div>
@@ -846,63 +852,70 @@ export default function PnLPage() {
                           <button
                             key={day.date}
                             onClick={() => handleWeekClick(week)}
-                            className="min-h-[80px] md:min-h-[100px] rounded-md border border-[#D4AF37] bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 transition-all flex flex-col items-center justify-center cursor-pointer p-1"
+                            className="min-h-[60px] md:min-h-[100px] rounded-md border border-[#D4AF37] bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30 transition-all flex flex-col items-center justify-center cursor-pointer p-1 overflow-hidden min-w-0"
                           >
-                            <span className="text-sm text-brown-200">
+                            <span className="text-[10px] sm:text-xs md:text-sm text-brown-200">
                               {parseLocalDate(day.date).getDate()}
                             </span>
-                            <span className="text-[10px] text-[#D4AF37] font-medium">Week {week.weekNumber}</span>
+                            {/* W# on mobile, Week # on desktop */}
+                            <span className="text-[8px] sm:text-[10px] text-[#D4AF37] font-medium">
+                              <span className="sm:hidden">W{week.weekNumber}</span>
+                              <span className="hidden sm:inline">Week {week.weekNumber}</span>
+                            </span>
                             <span className={cn(
-                              "text-sm font-bold",
+                              "text-[10px] sm:text-xs md:text-sm font-bold whitespace-nowrap",
                               week.totalPnL >= 0 ? "text-emerald-400" : "text-red-400"
                             )}>
-                              {formatWeeklyPnL(week.totalPnL)}
+                              {formatPnLMobile(week.totalPnL)}
                             </span>
-                            <span className="text-[9px] text-[#D4AF37]">{week.tradeCount} trades</span>
+                            {/* Abbreviated on mobile, full on desktop */}
+                            <span className="text-[8px] sm:text-[9px] text-[#D4AF37]">
+                              <span className="sm:hidden">{week.tradeCount}t</span>
+                              <span className="hidden sm:inline">{week.tradeCount} trades</span>
+                            </span>
                           </button>
                         );
                       }
 
-                      // Regular day cell - warm brown borders, NO colored borders
+                      // Regular day cell
                       return (
                         <button
                           key={day.date}
                           onClick={() => handleDayClick(day)}
                           className={cn(
-                            "min-h-[80px] md:min-h-[100px] rounded-md border transition-all flex flex-col cursor-pointer p-2 relative",
-                            // All cells get warm brown border
+                            "min-h-[60px] md:min-h-[100px] rounded-md border transition-all flex flex-col cursor-pointer p-1 sm:p-2 relative overflow-hidden min-w-0",
                             "border-brown-700/50",
-                            // Profit day - muted green background
                             hasTrades && isProfit && "bg-emerald-900/30 hover:bg-emerald-900/40",
-                            // Loss day - muted red-brown background
                             hasTrades && isLoss && "bg-red-900/25 hover:bg-red-900/35",
-                            // Breakeven day ($0 P&L) - warm brown background
                             isBreakeven && "bg-brown-800/40 hover:bg-brown-800/50",
-                            // Empty day - transparent with subtle warm brown hover
                             !hasTrades && "bg-transparent hover:bg-brown-800/20"
                           )}
                         >
-                          {/* Today indicator - small dot */}
+                          {/* Today indicator */}
                           {day.isToday && (
-                            <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-400" />
+                            <div className="absolute top-1 right-1 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400" />
                           )}
-                          {/* Date number - top left */}
+                          {/* Date number */}
                           <span className={cn(
-                            "text-sm",
+                            "text-[10px] sm:text-xs md:text-sm",
                             hasTrades ? "text-white" : "text-brown-400"
                           )}>
                             {parseLocalDate(day.date).getDate()}
                           </span>
                           {hasTrades && (
-                            <div className="flex-1 flex flex-col items-center justify-center">
+                            <div className="flex-1 flex flex-col items-center justify-center min-w-0">
+                              {/* P&L - mobile compact, desktop full */}
                               <span className={cn(
-                                "text-sm font-bold",
+                                "text-[10px] sm:text-xs md:text-sm font-bold whitespace-nowrap",
                                 isProfit ? "text-emerald-400" : isLoss ? "text-red-400" : "text-brown-300"
                               )}>
-                                {formatCellPnL(day.totalPnL)}
+                                <span className="sm:hidden">{formatPnLMobile(day.totalPnL)}</span>
+                                <span className="hidden sm:inline">{formatPnLDesktop(day.totalPnL)}</span>
                               </span>
-                              <span className="text-[10px] text-brown-500">
-                                {day.trades.length} {day.trades.length === 1 ? "trade" : "trades"}
+                              {/* Trade count - abbreviated on mobile */}
+                              <span className="text-[8px] sm:text-[10px] text-brown-500">
+                                <span className="sm:hidden">{day.trades.length}t</span>
+                                <span className="hidden sm:inline">{day.trades.length} {day.trades.length === 1 ? "trade" : "trades"}</span>
                               </span>
                             </div>
                           )}
