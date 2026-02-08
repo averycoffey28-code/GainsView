@@ -708,7 +708,7 @@ export default function PnLPage() {
           <Card className="bg-brown-800/50 border-brown-700/50">
             <CardContent className="p-4">
               <div className="flex items-center gap-1.5 text-brown-400 mb-1">
-                <DollarSign className="w-3.5 h-3.5" />
+                <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="text-sm font-semibold uppercase tracking-wider">Total P&L</span>
               </div>
               <p className={cn(
@@ -722,7 +722,7 @@ export default function PnLPage() {
           <Card className="bg-brown-800/50 border-brown-700/50">
             <CardContent className="p-4">
               <div className="flex items-center gap-1.5 text-brown-400 mb-1">
-                <Calendar className="w-3.5 h-3.5" />
+                <Calendar className="w-3.5 h-3.5 text-blue-400" />
                 <span className="text-sm font-semibold uppercase tracking-wider">This Month</span>
               </div>
               <p className={cn(
@@ -736,17 +736,17 @@ export default function PnLPage() {
           <Card className="bg-brown-800/50 border-brown-700/50">
             <CardContent className="p-4">
               <div className="flex items-center gap-1.5 text-brown-400 mb-1">
-                <Percent className="w-3.5 h-3.5" />
+                <Percent className="w-3.5 h-3.5 text-[#D4AF37]" />
                 <span className="text-sm font-semibold uppercase tracking-wider">Win Rate</span>
               </div>
-              <p className="text-3xl md:text-4xl font-bold text-brown-100">{stats.winRate.toFixed(0)}%</p>
+              <p className="text-3xl md:text-4xl font-bold text-[#D4AF37]">{stats.winRate.toFixed(0)}%</p>
               <p className="text-sm md:text-base text-brown-500">{stats.wins}W / {stats.losses}L</p>
             </CardContent>
           </Card>
           <Card className="bg-brown-800/50 border-brown-700/50">
             <CardContent className="p-4">
               <div className="flex items-center gap-1.5 text-brown-400 mb-1">
-                <Target className="w-3.5 h-3.5" />
+                <Target className="w-3.5 h-3.5 text-teal-400" />
                 <span className="text-sm font-semibold uppercase tracking-wider">Avg W/L</span>
               </div>
               <p className="text-2xl md:text-3xl font-bold">

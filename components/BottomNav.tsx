@@ -87,14 +87,6 @@ export default function BottomNav() {
                       isActive && "scale-110 nav-glow"
                     )}
                   />
-                  {/* Active dot indicator */}
-                  {isActive && (
-                    <motion.span
-                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-gold-400 rounded-full"
-                      layoutId="nav-indicator"
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    />
-                  )}
                 </motion.div>
 
                 {/* Label */}
