@@ -603,9 +603,9 @@ export default function PnLPage() {
 
   return (
     <div className="min-h-full bg-gradient-to-br from-brown-950 via-brown-900 to-brown-950 text-brown-50 p-4 pb-24 overflow-x-hidden max-w-[100vw]">
-      <div className="max-w-4xl mx-auto space-y-4 w-full overflow-hidden">
+      <div className="max-w-4xl mx-auto space-y-4 w-full">
         {/* Header */}
-        <div className="space-y-3 w-full overflow-hidden">
+        <div className="space-y-3 w-full">
           {/* Title Row */}
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0">
