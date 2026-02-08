@@ -96,7 +96,7 @@ export default function RootLayout({
   const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark overflow-x-hidden">
       <head>
         {/* Preconnect to external domains */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -164,7 +164,7 @@ export default function RootLayout({
       >
         <Providers withClerk={!!clerkKey}>
           {/* Main content area - scrollable, takes remaining space */}
-          <main className="flex-1 overflow-y-auto overscroll-none">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden overscroll-none max-w-[100vw]">
             {children}
           </main>
           {/* Bottom nav - fixed height, never overlaps content */}

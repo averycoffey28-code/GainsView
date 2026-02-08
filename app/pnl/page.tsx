@@ -601,46 +601,51 @@ export default function PnLPage() {
   const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   return (
-    <div className="min-h-full bg-gradient-to-br from-brown-950 via-brown-900 to-brown-950 text-brown-50 p-4 pb-24">
-      <div className="max-w-4xl mx-auto space-y-4">
+    <div className="min-h-full bg-gradient-to-br from-brown-950 via-brown-900 to-brown-950 text-brown-50 p-4 pb-24 overflow-x-hidden max-w-[100vw]">
+      <div className="max-w-4xl mx-auto space-y-4 w-full overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="space-y-3 w-full overflow-hidden">
+          {/* Title Row */}
           <div className="flex items-center gap-3">
-            <Logo size="small" glow />
-            <div>
-              <h1 className="text-lg font-bold text-brown-50">Trading Journal</h1>
+            <div className="flex-shrink-0">
+              <Logo size="header" glow />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-xl font-bold text-brown-50">Trading Journal</h1>
               <p className="text-brown-500 text-xs">Track your trading performance</p>
             </div>
           </div>
-          <div className="flex gap-2">
+
+          {/* Buttons Row - full width on mobile */}
+          <div className="flex gap-2 w-full">
             {/* Import Dropdown */}
-            <div className="relative">
+            <div className="relative flex-1">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowImportDropdown(!showImportDropdown)}
-                className="border-brown-700 text-brown-300 hover:bg-brown-800 text-xs"
+                className="w-full border-brown-700 text-brown-300 hover:bg-brown-800 text-xs justify-center"
               >
-                <Upload className="w-3.5 h-3.5 mr-1.5" />
+                <Upload className="w-4 h-4 mr-1.5" />
                 Import
                 <ChevronDown className="w-3 h-3 ml-1" />
               </Button>
               {showImportDropdown && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowImportDropdown(false)} />
-                  <div className="absolute right-0 mt-1 w-44 bg-brown-900 border border-brown-700 rounded-lg shadow-xl z-50 overflow-hidden">
+                  <div className="absolute left-0 right-0 sm:left-auto sm:right-0 sm:w-48 mt-1 bg-brown-900 border border-brown-700 rounded-lg shadow-xl z-50 overflow-hidden">
                     <button
                       onClick={() => {
                         setShowImportDropdown(false);
                         setShowImportModal(true);
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-brown-200 hover:bg-brown-800"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-brown-200 hover:bg-brown-800 active:bg-brown-700"
                     >
-                      <Upload className="w-3.5 h-3.5 text-brown-400" />
+                      <Upload className="w-4 h-4 text-brown-400" />
                       Import CSV
                     </button>
-                    <label className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-brown-200 hover:bg-brown-800 cursor-pointer">
-                      <Camera className="w-3.5 h-3.5 text-gold-400" />
+                    <label className="w-full flex items-center gap-3 px-4 py-3 text-sm text-brown-200 hover:bg-brown-800 active:bg-brown-700 cursor-pointer">
+                      <Camera className="w-4 h-4 text-gold-400" />
                       Upload Screenshot
                       <input type="file" accept="image/*" onChange={handleScreenshotUpload} className="hidden" />
                     </label>
@@ -649,15 +654,16 @@ export default function PnLPage() {
                         setShowImportDropdown(false);
                         setShowBatchModal(true);
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-brown-200 hover:bg-brown-800 border-t border-brown-700/50"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-brown-200 hover:bg-brown-800 active:bg-brown-700 border-t border-brown-700/50"
                     >
-                      <ImageIcon className="w-3.5 h-3.5 text-gold-400" />
+                      <ImageIcon className="w-4 h-4 text-gold-400" />
                       Batch Screenshots
                     </button>
                   </div>
                 </>
               )}
             </div>
+            {/* Share */}
             <Button
               variant="outline"
               size="sm"
@@ -668,20 +674,21 @@ export default function PnLPage() {
                 setShowShareModal(true);
               }}
               disabled={trades.length === 0}
-              className="border-brown-700 text-brown-300 hover:bg-brown-800 text-xs"
+              className="flex-1 border-brown-700 text-brown-300 hover:bg-brown-800 text-xs justify-center"
             >
-              <ImageIcon className="w-3.5 h-3.5 mr-1.5" />
+              <ImageIcon className="w-4 h-4 mr-1.5" />
               Share
             </Button>
+            {/* Log Trade */}
             <Button
               size="sm"
               onClick={() => {
                 setFormData((f) => ({ ...f, date: f.date || getToday() }));
                 setShowAddModal(true);
               }}
-              className="bg-gold-500 hover:bg-gold-600 text-brown-900 text-xs"
+              className="flex-1 bg-gold-500 hover:bg-gold-600 text-brown-900 text-xs justify-center"
             >
-              <Plus className="w-3.5 h-3.5 mr-1.5" />
+              <Plus className="w-4 h-4 mr-1.5" />
               Log Trade
             </Button>
           </div>
