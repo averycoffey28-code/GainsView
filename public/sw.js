@@ -1,7 +1,7 @@
 // GainsView Service Worker
-const CACHE_NAME = 'gainsview-v1';
-const STATIC_CACHE = 'gainsview-static-v1';
-const DYNAMIC_CACHE = 'gainsview-dynamic-v1';
+const CACHE_NAME = 'gainsview-v2';
+const STATIC_CACHE = 'gainsview-static-v2';
+const DYNAMIC_CACHE = 'gainsview-dynamic-v2';
 
 // Static assets to cache immediately
 const STATIC_ASSETS = [
@@ -55,8 +55,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip Clerk auth requests
-  if (url.hostname.includes('clerk')) {
+  // Skip ALL Clerk/auth-related requests - NEVER cache these
+  if (
+    url.hostname.includes('clerk') ||
+    url.pathname.includes('__clerk') ||
+    url.pathname.startsWith('/sign-in') ||
+    url.pathname.startsWith('/sign-up') ||
+    url.pathname.includes('.clerk') ||
+    request.headers.get('cookie')?.includes('__session') ||
+    request.headers.get('cookie')?.includes('__client')
+  ) {
     return;
   }
 

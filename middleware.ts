@@ -7,6 +7,8 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",
   "/login",
   "/signup",
+  "/api/webhooks(.*)",  // Clerk webhooks don't have user sessions
+  "/offline",           // PWA offline page
 ]);
 
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);

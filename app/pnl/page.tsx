@@ -34,7 +34,6 @@ import Logo from "@/components/shared/Logo";
 import ImportTradesModal from "@/components/ImportTradesModal";
 import DayOfWeekHeatmap from "@/components/pnl/DayOfWeekHeatmap";
 import TickerLeaderboard from "@/components/pnl/TickerLeaderboard";
-import TimeOfDayAnalysis from "@/components/pnl/TimeOfDayAnalysis";
 import SocialShareModal, { DayShareData, TradeShareData } from "@/components/pnl/SocialShareModal";
 import PnLOnboarding from "@/components/pnl/PnLOnboarding";
 import BatchScreenshotUpload from "@/components/pnl/BatchScreenshotUpload";
@@ -1033,7 +1032,6 @@ export default function PnLPage() {
               <DayOfWeekHeatmap trades={trades} />
               <TickerLeaderboard trades={trades} />
             </div>
-            <TimeOfDayAnalysis trades={trades} />
           </div>
         )}
 
