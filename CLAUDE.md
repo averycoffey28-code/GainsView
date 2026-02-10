@@ -27,15 +27,15 @@ vercel --prod    # Deploy to production
 - Recharts for P&L visualization
 - Tradier API for live market data
 - Clerk Auth (Google, Apple, Email) - handles sessions/auth
-- Supabase (PostgreSQL) - user data storage
+- Neon (PostgreSQL) - user data storage
 - Groq AI (Llama 3.1 70B)
 
 ### Authentication Flow
 1. User visits any page → Middleware checks auth
 2. If not logged in → Redirect to /sign-in
 3. User signs in via Clerk → Redirect to home
-4. Clerk webhook syncs user to Supabase database
-5. All user data linked via Supabase user_id
+4. Clerk webhook syncs user to Neon database
+5. All user data linked via user_id
 
 ### Key Files
 
@@ -47,9 +47,8 @@ vercel --prod    # Deploy to production
 
 **Auth & Database:**
 - `middleware.ts` - Clerk auth middleware, protects all routes
-- `lib/supabase/client.ts` - Supabase client for database operations
-- `lib/supabase/types.ts` - Database type definitions
-- `app/api/webhooks/clerk/route.ts` - Syncs Clerk users to Supabase
+- `lib/db.ts` - Neon/PostgreSQL client for database operations
+- `app/api/webhooks/clerk/route.ts` - Syncs Clerk users to Neon database
 
 **API Routes:**
 - `app/api/stock/route.ts` - Fetches stock quotes from Tradier
@@ -62,7 +61,7 @@ vercel --prod    # Deploy to production
 - `components/BottomNav.tsx` - Mobile bottom navigation
 - `components/TradingAssistant.tsx` - AI chat assistant
 
-### Database Schema (Supabase)
+### Database Schema (Neon PostgreSQL)
 
 Tables:
 - `users` - User profiles (synced from Clerk)
@@ -72,7 +71,7 @@ Tables:
 - `chat_history` - AI conversation history
 - `user_settings` - User preferences
 
-Run `supabase-schema.sql` in Supabase SQL Editor to create tables.
+Neon Console: https://console.neon.tech
 
 ### Brand Colors (from lion logo)
 
@@ -98,10 +97,8 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
 CLERK_SECRET_KEY=sk_...
 CLERK_WEBHOOK_SECRET=whsec_...  # For user sync webhook
 
-# Supabase Database
-NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...  # For webhook/admin operations
+# Neon Database
+DATABASE_URL=postgresql://user:pass@ep-xxx.us-east-1.aws.neon.tech/neondb?sslmode=require
 ```
 
 ### Routes
@@ -125,10 +122,10 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...  # For webhook/admin operations
 ### Data Hooks
 
 ```typescript
-import { useSupabaseUser, usePositions, useWatchlist, useTrades, useChatHistory } from "@/hooks/useUserData";
+import { useUser, usePositions, useWatchlist, useTrades, useChatHistory } from "@/hooks/useUserData";
 
 // Get current user
-const { user, loading, clerkUser } = useSupabaseUser();
+const { user, loading, clerkUser } = useUser();
 
 // Positions CRUD
 const { positions, addPosition, updatePosition, deletePosition } = usePositions();
