@@ -140,6 +140,21 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="format-detection" content="telephone=no" />
 
+        {/* Theme initialization - runs before React hydrates to prevent flash */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('gainsview-theme') || 'dark';
+                  document.documentElement.classList.remove('dark', 'light');
+                  document.documentElement.classList.add(theme);
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+
         {/* Service Worker Registration */}
         <script
           dangerouslySetInnerHTML={{

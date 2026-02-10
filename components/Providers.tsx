@@ -6,6 +6,8 @@ import { dark } from "@clerk/themes";
 import { SWRConfig } from "swr";
 import { ToastProvider } from "@/components/ui/toast";
 import { swrConfig } from "@/lib/swr-config";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import { TimezoneProvider } from "@/contexts/TimezoneContext";
 
 const clerkAppearance = {
   baseTheme: dark,
@@ -35,9 +37,13 @@ interface ProvidersProps {
 
 export function Providers({ children, withClerk = true }: ProvidersProps) {
   const content = (
-    <SWRConfig value={swrConfig}>
-      <ToastProvider>{children}</ToastProvider>
-    </SWRConfig>
+    <ThemeProvider>
+      <TimezoneProvider>
+        <SWRConfig value={swrConfig}>
+          <ToastProvider>{children}</ToastProvider>
+        </SWRConfig>
+      </TimezoneProvider>
+    </ThemeProvider>
   );
 
   if (withClerk) {
