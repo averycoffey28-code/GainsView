@@ -910,17 +910,13 @@ export default function PnLPage() {
                           onClick={() => handleDayClick(day)}
                           className={cn(
                             "min-h-[60px] md:min-h-[100px] rounded-md border transition-all flex flex-col cursor-pointer p-1 sm:p-2 relative overflow-hidden min-w-0",
-                            "border-brown-700/50",
+                            day.isToday ? "border-[#D4AF37]/60" : "border-brown-700/50",
                             hasTrades && isProfit && "bg-emerald-900/30 hover:bg-emerald-900/40",
                             hasTrades && isLoss && "bg-red-900/25 hover:bg-red-900/35",
                             isBreakeven && "bg-brown-800/40 hover:bg-brown-800/50",
                             !hasTrades && "bg-transparent hover:bg-brown-800/20"
                           )}
                         >
-                          {/* Today indicator */}
-                          {day.isToday && (
-                            <div className="absolute top-1 right-1 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400" />
-                          )}
                           {/* Date number */}
                           <span className={cn(
                             "text-[10px] sm:text-xs md:text-sm",
