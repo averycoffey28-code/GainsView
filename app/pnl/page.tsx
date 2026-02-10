@@ -114,6 +114,7 @@ export default function PnLPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showScreenshotModal, setShowScreenshotModal] = useState(false);
   const [showBatchModal, setShowBatchModal] = useState(false);
+  const [batchInitialFiles, setBatchInitialFiles] = useState<File[]>([]);
   const [showImportDropdown, setShowImportDropdown] = useState(false);
 
   // Selected data
@@ -473,8 +474,27 @@ export default function PnLPage() {
 
   // Screenshot handlers
   const handleScreenshotUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setShowImportDropdown(false);
+
+    // If multiple files selected, use batch modal
+    if (files.length > 1) {
+      const validFiles = Array.from(files).filter(file => {
+        const validTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+        return validTypes.includes(file.type) && file.size <= 10 * 1024 * 1024;
+      });
+      if (validFiles.length > 0) {
+        setBatchInitialFiles(validFiles);
+        setShowBatchModal(true);
+      }
+      event.target.value = "";
+      return;
+    }
+
+    // Single file - use existing flow
+    const file = files[0];
 
     if (!file.type.startsWith("image/")) {
       setExtractionError("Please upload an image file");
@@ -486,7 +506,6 @@ export default function PnLPage() {
       return;
     }
 
-    setShowImportDropdown(false);
     setShowScreenshotModal(true);
     setExtractionError(null);
     setExtractedTrade(null);
@@ -656,19 +675,8 @@ export default function PnLPage() {
                     <label className="w-full flex items-center gap-3 px-4 py-3.5 text-sm text-brown-200 hover:bg-brown-800 active:bg-brown-700 cursor-pointer touch-manipulation">
                       <Camera className="w-4 h-4 text-gold-400" />
                       Upload Screenshot
-                      <input type="file" accept="image/*" onChange={handleScreenshotUpload} className="hidden" />
+                      <input type="file" accept="image/*" multiple onChange={handleScreenshotUpload} className="hidden" />
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowImportDropdown(false);
-                        setShowBatchModal(true);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3.5 text-sm text-brown-200 hover:bg-brown-800 active:bg-brown-700 border-t border-brown-700/50 touch-manipulation"
-                    >
-                      <ImageIcon className="w-4 h-4 text-gold-400" />
-                      Batch Screenshots
-                    </button>
                   </div>
                 </>
               )}
@@ -707,53 +715,53 @@ export default function PnLPage() {
 
         {/* Stats Cards - 2x2 Grid */}
         <div className="grid grid-cols-2 gap-3">
-          <Card className="bg-brown-800/50 border-brown-700/50">
-            <CardContent className="p-4">
+          <Card className="bg-brown-800/50 border-brown-700/50 h-full">
+            <CardContent className="p-4 h-full flex flex-col">
               <div className="flex items-center gap-1.5 text-brown-400 mb-1">
                 <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="text-sm font-semibold uppercase tracking-wider">Total P&L</span>
               </div>
               <p className={cn(
-                "text-3xl md:text-4xl font-bold",
+                "text-2xl sm:text-3xl md:text-4xl font-bold whitespace-nowrap",
                 stats.totalPnL >= 0 ? "text-emerald-400" : "text-red-400"
               )}>
                 {stats.totalPnL >= 0 ? "+" : "-"}${Math.abs(stats.totalPnL).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
             </CardContent>
           </Card>
-          <Card className="bg-brown-800/50 border-brown-700/50">
-            <CardContent className="p-4">
+          <Card className="bg-brown-800/50 border-brown-700/50 h-full">
+            <CardContent className="p-4 h-full flex flex-col">
               <div className="flex items-center gap-1.5 text-brown-400 mb-1">
                 <Calendar className="w-3.5 h-3.5 text-blue-400" />
                 <span className="text-sm font-semibold uppercase tracking-wider">This Month</span>
               </div>
               <p className={cn(
-                "text-3xl md:text-4xl font-bold",
+                "text-2xl sm:text-3xl md:text-4xl font-bold whitespace-nowrap",
                 stats.thisMonthPnL >= 0 ? "text-emerald-400" : "text-red-400"
               )}>
                 {stats.thisMonthPnL >= 0 ? "+" : "-"}${Math.abs(stats.thisMonthPnL).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
             </CardContent>
           </Card>
-          <Card className="bg-brown-800/50 border-brown-700/50">
-            <CardContent className="p-4">
+          <Card className="bg-brown-800/50 border-brown-700/50 h-full">
+            <CardContent className="p-4 h-full flex flex-col">
               <div className="flex items-center gap-1.5 text-brown-400 mb-1">
                 <Percent className="w-3.5 h-3.5 text-[#D4AF37]" />
                 <span className="text-sm font-semibold uppercase tracking-wider">Win Rate</span>
               </div>
-              <p className="text-3xl md:text-4xl font-bold text-[#D4AF37]">{stats.winRate.toFixed(0)}%</p>
-              <p className="text-sm md:text-base text-brown-500">{stats.wins}W / {stats.losses}L</p>
+              <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#D4AF37] whitespace-nowrap">{stats.winRate.toFixed(0)}%</p>
+              <p className="text-sm md:text-base text-brown-500 mt-auto">{stats.wins}W / {stats.losses}L</p>
             </CardContent>
           </Card>
-          <Card className="bg-brown-800/50 border-brown-700/50">
-            <CardContent className="p-4">
+          <Card className="bg-brown-800/50 border-brown-700/50 h-full">
+            <CardContent className="p-4 h-full flex flex-col">
               <div className="flex items-center gap-1.5 text-brown-400 mb-1">
                 <Target className="w-3.5 h-3.5 text-teal-400" />
                 <span className="text-sm font-semibold uppercase tracking-wider">Avg W/L</span>
               </div>
-              <p className="text-2xl md:text-3xl font-bold">
+              <p className="text-xl sm:text-2xl md:text-3xl font-bold whitespace-nowrap">
                 <span className="text-emerald-400">+${stats.avgWin.toFixed(0)}</span>
-                <span className="text-brown-500 mx-1">/</span>
+                <span className="text-brown-500 mx-0.5 sm:mx-1">/</span>
                 <span className="text-red-400">-${stats.avgLoss.toFixed(0)}</span>
               </p>
             </CardContent>
@@ -1722,7 +1730,10 @@ export default function PnLPage() {
         {/* Batch Screenshot Upload Modal */}
         <BatchScreenshotUpload
           isOpen={showBatchModal}
-          onClose={() => setShowBatchModal(false)}
+          onClose={() => {
+            setShowBatchModal(false);
+            setBatchInitialFiles([]);
+          }}
           onSaveTrades={async (tradesToSave) => {
             for (const trade of tradesToSave) {
               await addTrade(trade);
@@ -1730,6 +1741,7 @@ export default function PnLPage() {
             refetch();
           }}
           getToday={getToday}
+          initialFiles={batchInitialFiles}
         />
 
         {/* Hidden screenshot input */}
@@ -1737,6 +1749,7 @@ export default function PnLPage() {
           ref={screenshotInputRef}
           type="file"
           accept="image/*"
+          multiple
           onChange={handleScreenshotUpload}
           className="hidden"
         />

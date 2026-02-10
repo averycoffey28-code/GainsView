@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
   X,
@@ -71,6 +71,7 @@ interface BatchScreenshotUploadProps {
     trade_date: string;
   }>) => Promise<void>;
   getToday: () => string;
+  initialFiles?: File[];
 }
 
 export default function BatchScreenshotUpload({
@@ -78,6 +79,7 @@ export default function BatchScreenshotUpload({
   onClose,
   onSaveTrades,
   getToday,
+  initialFiles,
 }: BatchScreenshotUploadProps) {
   const [step, setStep] = useState<"upload" | "processing" | "review">("upload");
   const [images, setImages] = useState<ImageItem[]>([]);
@@ -110,6 +112,13 @@ export default function BatchScreenshotUpload({
 
     setImages(prev => [...prev, ...newImages]);
   }, []);
+
+  // Load initial files when modal opens with them
+  useEffect(() => {
+    if (isOpen && initialFiles && initialFiles.length > 0) {
+      handleFileSelect(initialFiles);
+    }
+  }, [isOpen, initialFiles, handleFileSelect]);
 
   // Drag and drop handlers
   const handleDragEnter = useCallback((e: React.DragEvent) => {
