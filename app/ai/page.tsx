@@ -291,13 +291,17 @@ export default function AIPage() {
             {/* AI Avatar */}
             <div className="relative">
               <div className="absolute inset-0 blur-xl bg-gold-400/50 rounded-full scale-125" />
-              <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center overflow-hidden">
+              <div className="relative w-12 h-12 rounded-full bg-[#2D2416] border border-gold-400/40 flex items-center justify-center overflow-hidden">
                 <Image
                   src="/images/logo.png"
                   alt="GainsView AI"
-                  width={40}
-                  height={40}
-                  className="object-contain drop-shadow-[0_0_10px_rgba(212,175,55,0.4)]"
+                  width={128}
+                  height={128}
+                  className="w-[200%] h-[200%] max-w-none object-contain"
+                  style={{
+                    filter: 'drop-shadow(0 0 4px rgba(212, 175, 55, 0.5))',
+                    transform: 'translate(1%, 4%)'
+                  }}
                 />
               </div>
             </div>
@@ -339,13 +343,17 @@ export default function AIPage() {
               <div className="text-center mb-8">
                 <div className="relative inline-block mb-6">
                   <div className="absolute inset-0 blur-3xl bg-gold-400/40 rounded-full scale-150" />
-                  <div className="relative w-28 h-28 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-gold-400/20 to-gold-600/20 border border-gold-400/30 flex items-center justify-center mx-auto">
+                  <div className="relative w-28 h-28 md:w-32 md:h-32 rounded-full bg-[#2D2416] border border-gold-400/30 flex items-center justify-center mx-auto overflow-hidden">
                     <Image
                       src="/images/logo.png"
                       alt="GainsView AI"
-                      width={96}
-                      height={96}
-                      className="object-contain drop-shadow-[0_0_20px_rgba(212,175,55,0.5)]"
+                      width={256}
+                      height={256}
+                      className="w-[200%] h-[200%] max-w-none object-contain"
+                      style={{
+                        filter: 'drop-shadow(0 0 8px rgba(212, 175, 55, 0.4))',
+                        transform: 'translate(1%, 4%)'
+                      }}
                     />
                   </div>
                 </div>
@@ -418,13 +426,17 @@ export default function AIPage() {
                   >
                     {message.role === "assistant" && (
                       <div className="flex-shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold-400/20 to-gold-600/20 border border-gold-400/30 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-[#2D2416] border border-gold-400/30 flex items-center justify-center overflow-hidden">
                           <Image
                             src="/images/logo.png"
                             alt="AI"
-                            width={28}
-                            height={28}
-                            className="object-contain drop-shadow-[0_0_8px_rgba(212,175,55,0.3)]"
+                            width={96}
+                            height={96}
+                            className="w-[200%] h-[200%] max-w-none object-contain"
+                            style={{
+                              filter: 'drop-shadow(0 0 3px rgba(212, 175, 55, 0.4))',
+                              transform: 'translate(1%, 4%)'
+                            }}
                           />
                         </div>
                       </div>
@@ -506,13 +518,17 @@ export default function AIPage() {
               {/* Loading indicator */}
               {isLoading && (
                 <div className="flex gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold-400/20 to-gold-600/20 border border-gold-400/30 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-[#2D2416] border border-gold-400/30 flex items-center justify-center overflow-hidden">
                     <Image
                       src="/images/logo.png"
                       alt="AI"
-                      width={28}
-                      height={28}
-                      className="object-contain drop-shadow-[0_0_8px_rgba(212,175,55,0.3)]"
+                      width={96}
+                      height={96}
+                      className="w-[200%] h-[200%] max-w-none object-contain"
+                      style={{
+                        filter: 'drop-shadow(0 0 3px rgba(212, 175, 55, 0.4))',
+                        transform: 'translate(1%, 4%)'
+                      }}
                     />
                   </div>
                   <div className="bg-brown-800/80 border border-brown-700/50 px-4 py-3 rounded-2xl rounded-bl-md">
