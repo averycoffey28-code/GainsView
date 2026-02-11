@@ -1374,99 +1374,106 @@ export default function PnLPage() {
           createPortal(
             <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
               <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowAddModal(false)} />
-              <div className="relative w-full max-w-md max-h-[90vh] bg-brown-900 rounded-2xl border border-brown-700 shadow-2xl overflow-hidden flex flex-col">
-                <div className="flex items-center justify-between p-4 border-b border-brown-700">
-                  <h2 className="text-lg font-semibold text-brown-50">Log Trade</h2>
-                  <button onClick={() => setShowAddModal(false)} className="p-1 text-brown-400 hover:text-brown-200">
-                    <X className="w-5 h-5" />
+              <div className="relative w-full max-w-md md:max-w-2xl max-h-[90vh] bg-brown-900 rounded-2xl border border-brown-700 shadow-2xl overflow-hidden flex flex-col">
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 md:p-6 border-b border-brown-700">
+                  <h2 className="text-xl md:text-2xl font-bold text-brown-50">Log Trade</h2>
+                  <button onClick={() => setShowAddModal(false)} className="p-2 text-brown-400 hover:text-brown-200 transition-colors">
+                    <X className="w-5 h-5 md:w-6 md:h-6" />
                   </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label className="text-brown-300 text-xs">Date</Label>
+                {/* Form Content */}
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 md:space-y-6">
+                  {/* Row 1: Date & Symbol */}
+                  <div className="grid grid-cols-2 gap-3 md:gap-6">
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-brown-300 text-sm md:text-base font-medium">Date</Label>
                       <Input
                         type="date"
                         value={formData.date}
                         onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                        className="bg-brown-800 border-brown-700 text-brown-100 text-sm"
+                        className="bg-brown-800 border-brown-700 text-brown-100 text-sm md:text-base h-10 md:h-12 px-3 md:px-4"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-brown-300 text-xs">Symbol</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-brown-300 text-sm md:text-base font-medium">Symbol</Label>
                       <Input
                         placeholder="AAPL"
                         value={formData.symbol}
                         onChange={(e) => setFormData({ ...formData, symbol: e.target.value.toUpperCase() })}
-                        className="bg-brown-800 border-brown-700 text-brown-100 text-sm"
+                        className="bg-brown-800 border-brown-700 text-brown-100 text-sm md:text-base h-10 md:h-12 px-3 md:px-4"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label className="text-brown-300 text-xs">Type</Label>
+                  {/* Row 2: Type & Quantity */}
+                  <div className="grid grid-cols-2 gap-3 md:gap-6">
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-brown-300 text-sm md:text-base font-medium">Type</Label>
                       <select
                         value={formData.asset_type}
                         onChange={(e) => setFormData({ ...formData, asset_type: e.target.value as "stock" | "call" | "put" })}
-                        className="w-full h-9 px-3 bg-brown-800 border border-brown-700 text-brown-100 rounded-md text-sm"
+                        className="w-full h-10 md:h-12 px-3 md:px-4 bg-brown-800 border border-brown-700 text-brown-100 rounded-md text-sm md:text-base"
                       >
                         <option value="call">Call</option>
                         <option value="put">Put</option>
                         <option value="stock">Stock</option>
                       </select>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-brown-300 text-xs">Quantity</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-brown-300 text-sm md:text-base font-medium">Quantity</Label>
                       <Input
                         type="number"
                         placeholder="10"
                         value={formData.quantity}
                         onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                        className="bg-brown-800 border-brown-700 text-brown-100 text-sm"
+                        className="bg-brown-800 border-brown-700 text-brown-100 text-sm md:text-base h-10 md:h-12 px-3 md:px-4"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label className="text-brown-300 text-xs">Entry Price ($)</Label>
+                  {/* Row 3: Entry Price & Exit Price */}
+                  <div className="grid grid-cols-2 gap-3 md:gap-6">
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-brown-300 text-sm md:text-base font-medium">Entry Price ($)</Label>
                       <Input
                         type="number"
                         step="0.01"
                         placeholder="1.50"
                         value={formData.entry_price}
                         onChange={(e) => setFormData({ ...formData, entry_price: e.target.value })}
-                        className="bg-brown-800 border-brown-700 text-brown-100 text-sm"
+                        className="bg-brown-800 border-brown-700 text-brown-100 text-sm md:text-base h-10 md:h-12 px-3 md:px-4"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-brown-300 text-xs">Exit Price ($)</Label>
+                    <div className="space-y-1.5 md:space-y-2">
+                      <Label className="text-brown-300 text-sm md:text-base font-medium">Exit Price ($)</Label>
                       <Input
                         type="number"
                         step="0.01"
                         placeholder="2.00"
                         value={formData.exit_price}
                         onChange={(e) => setFormData({ ...formData, exit_price: e.target.value })}
-                        className="bg-brown-800 border-brown-700 text-brown-100 text-sm"
+                        className="bg-brown-800 border-brown-700 text-brown-100 text-sm md:text-base h-10 md:h-12 px-3 md:px-4"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-brown-300 text-xs">Notes (optional)</Label>
+                  {/* Row 4: Notes (full width) */}
+                  <div className="space-y-1.5 md:space-y-2">
+                    <Label className="text-brown-300 text-sm md:text-base font-medium">Notes (optional)</Label>
                     <Input
                       placeholder="Trade notes..."
                       value={formData.notes}
                       onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      className="bg-brown-800 border-brown-700 text-brown-100 text-sm"
+                      className="bg-brown-800 border-brown-700 text-brown-100 text-sm md:text-base h-10 md:h-12 px-3 md:px-4"
                     />
                   </div>
 
+                  {/* Calculated P&L */}
                   {formData.entry_price && formData.exit_price && formData.quantity && (
-                    <div className="p-3 bg-brown-800/50 rounded-lg border border-brown-700">
-                      <span className="text-xs text-brown-400">Calculated P&L: </span>
+                    <div className="p-3 md:p-4 bg-brown-800/50 rounded-lg border border-brown-700">
+                      <span className="text-sm md:text-base text-brown-400">Calculated P&L: </span>
                       {(() => {
                         const entry = parseFloat(formData.entry_price) || 0;
                         const exit = parseFloat(formData.exit_price) || 0;
@@ -1474,7 +1481,7 @@ export default function PnLPage() {
                         const mult = formData.asset_type === "stock" ? 1 : 100;
                         const pnl = (exit - entry) * qty * mult;
                         return (
-                          <span className={cn("font-bold", pnl >= 0 ? "text-emerald-400" : "text-red-400")}>
+                          <span className={cn("font-bold text-lg md:text-xl", pnl >= 0 ? "text-emerald-400" : "text-red-400")}>
                             {pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}
                           </span>
                         );
@@ -1483,16 +1490,21 @@ export default function PnLPage() {
                   )}
                 </div>
 
-                <div className="flex gap-2 p-4 border-t border-brown-700">
-                  <Button variant="ghost" onClick={() => setShowAddModal(false)} className="flex-1 text-brown-400">
+                {/* Footer with action buttons */}
+                <div className="flex gap-3 md:gap-4 p-4 md:p-6 pt-4 md:pt-6 border-t border-brown-700 bg-brown-900/50">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowAddModal(false)}
+                    className="flex-1 text-brown-400 hover:text-brown-200 h-11 md:h-12 text-sm md:text-base"
+                  >
                     Cancel
                   </Button>
                   <Button
                     onClick={handleSubmit}
                     disabled={!formData.symbol || !formData.quantity || isSubmitting}
-                    className="flex-1 bg-gold-500 hover:bg-gold-600 text-brown-900"
+                    className="flex-[2] bg-gold-500 hover:bg-gold-600 text-brown-900 font-semibold h-11 md:h-12 text-sm md:text-base"
                   >
-                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Trade"}
+                    {isSubmitting ? <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" /> : "Save Trade"}
                   </Button>
                 </div>
               </div>
