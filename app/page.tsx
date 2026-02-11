@@ -180,48 +180,45 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="relative rounded-2xl border border-gold-500/30 bg-gradient-to-br from-brown-800/80 to-brown-900/80 backdrop-blur-xl"
+          className="rounded-2xl border border-gold-500/30 bg-gradient-to-br from-brown-800/80 to-brown-900/80 backdrop-blur-xl"
         >
-          {/* Glass effect overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-gold-400/5 to-transparent pointer-events-none rounded-2xl" />
-
-          <div className="relative p-5 pb-6">
-            {/* Header */}
-            <div className="flex items-start justify-between mb-4">
-              <h2 className="text-lg font-semibold text-brown-100">Account Summary</h2>
-              {/* Period selector */}
-              <div className="flex gap-1 p-1 bg-brown-800/50 rounded-lg flex-shrink-0">
-                {periods.map((period) => (
-                  <button
-                    key={period}
-                    onClick={() => setSelectedPeriod(period)}
-                    className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
-                      selectedPeriod === period
-                        ? "bg-gold-500 text-brown-900"
-                        : "text-brown-400 hover:text-brown-200"
-                    }`}
-                  >
-                    {period}
-                  </button>
-                ))}
-              </div>
+          {/* Header */}
+          <div className="flex items-start justify-between p-5 pb-0">
+            <h2 className="text-lg font-semibold text-brown-100">Account Summary</h2>
+            {/* Period selector */}
+            <div className="flex gap-1 p-1 bg-brown-800/50 rounded-lg flex-shrink-0">
+              {periods.map((period) => (
+                <button
+                  key={period}
+                  onClick={() => setSelectedPeriod(period)}
+                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
+                    selectedPeriod === period
+                      ? "bg-gold-500 text-brown-900"
+                      : "text-brown-400 hover:text-brown-200"
+                  }`}
+                >
+                  {period}
+                </button>
+              ))}
             </div>
+          </div>
 
-            {/* Chart - constrained height with overflow hidden only here */}
-            <div className="h-[180px] md:h-48 overflow-hidden">
-              {tradesLoading ? (
-                <div className="h-full bg-brown-800/30 rounded-lg animate-pulse" />
-              ) : (
-                <AccountSummaryChart trades={trades} period={selectedPeriod} />
-              )}
-            </div>
+          {/* Chart - isolated in its own container */}
+          <div className="h-[180px] md:h-48 overflow-hidden mx-5 mt-4">
+            {tradesLoading ? (
+              <div className="h-full bg-brown-800/30 rounded-lg animate-pulse" />
+            ) : (
+              <AccountSummaryChart trades={trades} period={selectedPeriod} />
+            )}
+          </div>
 
-            {/* Stats - must be fully visible */}
-            <div className="flex items-end justify-between gap-4 pt-4 mt-4 border-t border-brown-700/50">
-              <div>
+          {/* Stats row - completely separate from chart, explicit width */}
+          <div className="p-5 pt-4 mt-4 mx-5 border-t border-brown-700/50">
+            <div className="flex items-end justify-between">
+              <div className="flex-1">
                 <p className="text-xs text-brown-400 mb-1">Total P&L</p>
                 <p
-                  className={`text-lg sm:text-xl md:text-2xl font-bold ${
+                  className={`text-[1.125rem] sm:text-xl md:text-2xl font-bold leading-tight ${
                     totalPnL >= 0 ? "text-emerald-400" : "text-rose-400"
                   }`}
                 >
@@ -234,7 +231,7 @@ export default function Home() {
                       })}
                 </p>
               </div>
-              <div className="text-right">
+              <div className="text-right flex-shrink-0 pl-4">
                 <p className="text-xs text-brown-400 mb-1">Today&apos;s Change</p>
                 <div
                   className={`flex items-center justify-end gap-1 ${
