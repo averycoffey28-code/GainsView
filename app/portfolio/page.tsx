@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Logo from "@/components/shared/Logo";
 import MarketDataDisclaimer from "@/components/MarketDataDisclaimer";
+import MarketNews from "@/components/MarketNews";
 import { useWatchlist, useUserSettings } from "@/hooks/useUserData";
 import { cn } from "@/lib/utils";
 
@@ -1038,6 +1039,12 @@ export default function MarketsPage() {
             </div>
           )}
         </div>
+
+        {/* Market News Section */}
+        <MarketNews
+          selectedSymbol={selectedSymbol}
+          onSelectTicker={handleSelectStock}
+        />
 
         {/* Disclaimer */}
         <p className="text-center text-xs text-brown-600 pb-2">
