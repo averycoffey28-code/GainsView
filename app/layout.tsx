@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import BottomNav from "@/components/BottomNav";
 import InstallPWA from "@/components/shared/InstallPWA";
+import SplashScreen from "@/components/SplashScreen";
 import "./globals.css";
 
 // Optimized font loading with display swap and preload
@@ -178,6 +179,8 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-screen flex flex-col overflow-hidden`}
       >
         <Providers withClerk={!!clerkKey}>
+          {/* Splash Screen - plays once per session on initial load */}
+          <SplashScreen />
           {/* Main content area - scrollable, takes remaining space */}
           <main className="flex-1 overflow-y-auto overflow-x-hidden overscroll-none max-w-[100vw]">
             {children}
