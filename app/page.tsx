@@ -180,17 +180,17 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="relative overflow-hidden rounded-2xl border border-gold-500/30 bg-gradient-to-br from-brown-800/80 to-brown-900/80 backdrop-blur-xl"
+          className="relative rounded-2xl border border-gold-500/30 bg-gradient-to-br from-brown-800/80 to-brown-900/80 backdrop-blur-xl"
         >
           {/* Glass effect overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-gold-400/5 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-gold-400/5 to-transparent pointer-events-none rounded-2xl" />
 
-          <div className="relative p-5">
+          <div className="relative p-5 pb-6">
             {/* Header */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-start justify-between mb-4">
               <h2 className="text-lg font-semibold text-brown-100">Account Summary</h2>
               {/* Period selector */}
-              <div className="flex gap-1 p-1 bg-brown-800/50 rounded-lg">
+              <div className="flex gap-1 p-1 bg-brown-800/50 rounded-lg flex-shrink-0">
                 {periods.map((period) => (
                   <button
                     key={period}
@@ -207,8 +207,8 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Chart */}
-            <div className="h-48 mb-4">
+            {/* Chart - constrained height with overflow hidden only here */}
+            <div className="h-[180px] md:h-48 overflow-hidden">
               {tradesLoading ? (
                 <div className="h-full bg-brown-800/30 rounded-lg animate-pulse" />
               ) : (
@@ -216,12 +216,12 @@ export default function Home() {
               )}
             </div>
 
-            {/* Stats */}
-            <div className="flex items-center justify-between pt-4 border-t border-brown-700/50">
-              <div>
+            {/* Stats - must be fully visible */}
+            <div className="flex items-end justify-between pt-4 mt-4 border-t border-brown-700/50">
+              <div className="min-w-0">
                 <p className="text-xs text-brown-400 mb-1">Total P&L</p>
                 <p
-                  className={`text-2xl font-bold ${
+                  className={`text-xl sm:text-2xl font-bold whitespace-nowrap ${
                     totalPnL >= 0 ? "text-emerald-400" : "text-rose-400"
                   }`}
                 >
@@ -231,17 +231,17 @@ export default function Home() {
                   })}
                 </p>
               </div>
-              <div className="text-right">
+              <div className="text-right flex-shrink-0">
                 <p className="text-xs text-brown-400 mb-1">Today&apos;s Change</p>
                 <div
-                  className={`flex items-center justify-end gap-1 ${
+                  className={`flex items-center justify-end gap-1 whitespace-nowrap ${
                     todayChange.value >= 0 ? "text-emerald-400" : "text-rose-400"
                   }`}
                 >
                   {todayChange.value >= 0 ? (
-                    <TrendingUp className="w-4 h-4" />
+                    <TrendingUp className="w-4 h-4 flex-shrink-0" />
                   ) : (
-                    <TrendingDown className="w-4 h-4" />
+                    <TrendingDown className="w-4 h-4 flex-shrink-0" />
                   )}
                   <span className="text-lg font-semibold">
                     {todayChange.percentage >= 0 ? "+" : ""}

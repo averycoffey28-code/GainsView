@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   Loader2,
   Trash2,
-  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -774,23 +773,30 @@ export default function ImportTradesModal({
             </div>
           ) : matchedTrades.length === 0 ? (
             <>
-              {/* Instructions */}
-              <div className="mb-4 p-3 bg-brown-800/50 rounded-lg border border-brown-700">
-                <div className="flex items-start gap-2">
-                  <Info className="w-4 h-4 text-gold-400 mt-0.5 flex-shrink-0" />
-                  <div className="text-xs text-brown-400">
-                    <p className="font-medium text-brown-300 mb-1">Supported CSV formats:</p>
-                    <ul className="list-disc list-inside space-y-1">
-                      <li><strong>Any CSV</strong> with columns: Date, Symbol, P&L (or Profit/Loss)</li>
-                      <li><strong>Robinhood</strong> transaction history (auto-matches buy/sell pairs)</li>
-                      <li><strong>Spreadsheets</strong> exported from Excel, Google Sheets, etc.</li>
-                    </ul>
-                    <p className="mt-2 text-brown-500">
-                      Column names are detected automatically. Optional columns: Type, Quantity, Entry/Exit Price, Notes
-                    </p>
-                  </div>
+              {/* Robinhood Export Instructions */}
+              <div className="mb-4 p-4 bg-brown-800/50 rounded-xl border border-brown-700">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">📱</span>
+                  <h4 className="font-semibold text-brown-100">How to export from Robinhood</h4>
+                </div>
+                <ol className="space-y-1.5 text-sm text-brown-400 ml-6 list-decimal">
+                  <li>Open Robinhood → tap <strong className="text-brown-200">Account</strong> (person icon)</li>
+                  <li>Tap <strong className="text-brown-200">Reports & Statements</strong></li>
+                  <li>Tap <strong className="text-brown-200">Generate Report</strong></li>
+                  <li>Select your desired date range</li>
+                  <li>Tap <strong className="text-brown-200">Generate</strong></li>
+                  <li>Download the CSV once it&apos;s ready</li>
+                </ol>
+                <div className="flex items-center gap-2 mt-3 p-2 bg-gold-400/10 rounded-lg">
+                  <span className="text-sm">⏳</span>
+                  <p className="text-xs text-gold-400">Reports can take a few hours to generate. You&apos;ll get a notification when ready.</p>
                 </div>
               </div>
+
+              {/* Secondary: Other formats */}
+              <p className="text-xs text-brown-500 mb-4">
+                <strong className="text-brown-400">Also supports:</strong> Any CSV with Date, Symbol, and P&L columns. Column names are detected automatically.
+              </p>
 
               {/* Drop Zone */}
               <div
