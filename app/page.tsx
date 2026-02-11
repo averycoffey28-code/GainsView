@@ -217,33 +217,36 @@ export default function Home() {
             </div>
 
             {/* Stats - must be fully visible */}
-            <div className="flex items-end justify-between pt-4 mt-4 border-t border-brown-700/50">
-              <div className="min-w-0">
+            <div className="flex items-end justify-between gap-4 pt-4 mt-4 border-t border-brown-700/50">
+              <div>
                 <p className="text-xs text-brown-400 mb-1">Total P&L</p>
                 <p
-                  className={`text-xl sm:text-2xl font-bold whitespace-nowrap ${
+                  className={`text-lg sm:text-xl md:text-2xl font-bold ${
                     totalPnL >= 0 ? "text-emerald-400" : "text-rose-400"
                   }`}
                 >
-                  {totalPnL >= 0 ? "+" : ""}${Math.abs(totalPnL).toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+                  {totalPnL >= 0 ? "+" : "-"}$
+                  {Math.abs(totalPnL) >= 100000
+                    ? `${(Math.abs(totalPnL) / 1000).toFixed(1)}k`
+                    : Math.abs(totalPnL).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                 </p>
               </div>
-              <div className="text-right flex-shrink-0">
+              <div className="text-right">
                 <p className="text-xs text-brown-400 mb-1">Today&apos;s Change</p>
                 <div
-                  className={`flex items-center justify-end gap-1 whitespace-nowrap ${
+                  className={`flex items-center justify-end gap-1 ${
                     todayChange.value >= 0 ? "text-emerald-400" : "text-rose-400"
                   }`}
                 >
                   {todayChange.value >= 0 ? (
-                    <TrendingUp className="w-4 h-4 flex-shrink-0" />
+                    <TrendingUp className="w-4 h-4" />
                   ) : (
-                    <TrendingDown className="w-4 h-4 flex-shrink-0" />
+                    <TrendingDown className="w-4 h-4" />
                   )}
-                  <span className="text-lg font-semibold">
+                  <span className="text-base sm:text-lg font-semibold">
                     {todayChange.percentage >= 0 ? "+" : ""}
                     {todayChange.percentage.toFixed(1)}%
                   </span>
