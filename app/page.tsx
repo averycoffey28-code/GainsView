@@ -217,37 +217,45 @@ export default function Home() {
             <div className="flex items-end justify-between">
               <div className="flex-1">
                 <p className="text-xs text-brown-400 mb-1">Total P&L</p>
-                <p
-                  className={`text-[1.125rem] sm:text-xl md:text-2xl font-bold leading-tight ${
-                    totalPnL >= 0 ? "text-emerald-400" : "text-rose-400"
-                  }`}
-                >
-                  {totalPnL >= 0 ? "+" : "-"}$
-                  {Math.abs(totalPnL) >= 100000
-                    ? `${(Math.abs(totalPnL) / 1000).toFixed(1)}k`
-                    : Math.abs(totalPnL).toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                </p>
+                {tradesLoading ? (
+                  <div className="h-7 w-28 bg-brown-700/50 rounded animate-pulse" />
+                ) : (
+                  <p
+                    className={`text-[1.125rem] sm:text-xl md:text-2xl font-bold leading-tight ${
+                      totalPnL >= 0 ? "text-emerald-400" : "text-rose-400"
+                    }`}
+                  >
+                    {totalPnL >= 0 ? "+" : "-"}$
+                    {Math.abs(totalPnL) >= 100000
+                      ? `${(Math.abs(totalPnL) / 1000).toFixed(1)}k`
+                      : Math.abs(totalPnL).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                  </p>
+                )}
               </div>
               <div className="text-right flex-shrink-0 pl-4">
                 <p className="text-xs text-brown-400 mb-1">Today&apos;s Change</p>
-                <div
-                  className={`flex items-center justify-end gap-1 ${
-                    todayChange.value >= 0 ? "text-emerald-400" : "text-rose-400"
-                  }`}
-                >
-                  {todayChange.value >= 0 ? (
-                    <TrendingUp className="w-4 h-4" />
-                  ) : (
-                    <TrendingDown className="w-4 h-4" />
-                  )}
-                  <span className="text-base sm:text-lg font-semibold">
-                    {todayChange.percentage >= 0 ? "+" : ""}
-                    {todayChange.percentage.toFixed(1)}%
-                  </span>
-                </div>
+                {tradesLoading ? (
+                  <div className="h-6 w-16 bg-brown-700/50 rounded animate-pulse ml-auto" />
+                ) : (
+                  <div
+                    className={`flex items-center justify-end gap-1 ${
+                      todayChange.value >= 0 ? "text-emerald-400" : "text-rose-400"
+                    }`}
+                  >
+                    {todayChange.value >= 0 ? (
+                      <TrendingUp className="w-4 h-4" />
+                    ) : (
+                      <TrendingDown className="w-4 h-4" />
+                    )}
+                    <span className="text-base sm:text-lg font-semibold">
+                      {todayChange.percentage >= 0 ? "+" : ""}
+                      {todayChange.percentage.toFixed(1)}%
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

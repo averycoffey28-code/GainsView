@@ -1,7 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useEffect } from "react";
 import useSWR, { mutate } from "swr";
 import { fetcher, userDataConfig } from "@/lib/swr-config";
 
@@ -291,14 +291,37 @@ const parseNumeric = (value: number | string | null | undefined): number => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
+const TRADES_CACHE_KEY = "gainsview_trades_cache";
+
 // Hook for trades (P&L tracking)
 export function useTrades() {
   const { clerkUser } = useDbUser();
 
+  // Load cached data on initial render for instant display
+  const getCachedTrades = (): Trade[] | undefined => {
+    if (typeof window === "undefined") return undefined;
+    try {
+      const cached = localStorage.getItem(TRADES_CACHE_KEY);
+      if (cached) {
+        const { trades, timestamp } = JSON.parse(cached);
+        // Use cache if less than 5 minutes old
+        if (Date.now() - timestamp < 5 * 60 * 1000) {
+          return trades;
+        }
+      }
+    } catch {
+      // Ignore cache errors
+    }
+    return undefined;
+  };
+
   const { data, isLoading, mutate: mutateTrades } = useSWR<Trade[]>(
     clerkUser ? "/api/user?type=trades" : null,
     userFetcher,
-    userDataConfig
+    {
+      ...userDataConfig,
+      fallbackData: getCachedTrades(),
+    }
   );
 
   // Normalize trades to ensure numeric values are properly parsed
@@ -311,6 +334,20 @@ export function useTrades() {
       quantity: parseNumeric(trade.quantity),
       total_value: parseNumeric(trade.total_value),
     }));
+  }, [data]);
+
+  // Cache trades to localStorage when fresh data arrives
+  useEffect(() => {
+    if (data && data.length > 0 && typeof window !== "undefined") {
+      try {
+        localStorage.setItem(TRADES_CACHE_KEY, JSON.stringify({
+          trades: data,
+          timestamp: Date.now()
+        }));
+      } catch {
+        // Ignore storage errors
+      }
+    }
   }, [data]);
 
   const totalPnL = useMemo(
@@ -387,7 +424,8 @@ export function useTrades() {
 
   return {
     trades,
-    loading: isLoading,
+    // Only show loading if we have no data at all (no cache, no fresh data)
+    loading: isLoading && !data,
     addTrade,
     updateTrade,
     deleteTrade,
