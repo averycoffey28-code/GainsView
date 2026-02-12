@@ -20,7 +20,10 @@ import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "pnl_onboarding_status";
 
-type OnboardingStatus = "completed" | "dismissed" | number; // number = remind timestamp
+interface OnboardingStorageData {
+  status: "completed" | "dismissed" | "remind_later";
+  timestamp: number;
+}
 
 interface Broker {
   id: string;
@@ -108,6 +111,12 @@ export default function PnLOnboarding({
 
   // Check if onboarding should show
   useEffect(() => {
+    // If user already has trades, never show onboarding
+    if (tradesCount > 0) {
+      setIsOpen(false);
+      return;
+    }
+
     const stored = localStorage.getItem(STORAGE_KEY);
 
     if (!stored) {
@@ -116,38 +125,74 @@ export default function PnLOnboarding({
       return;
     }
 
-    if (stored === "completed" || stored === "dismissed") {
-      setIsOpen(false);
-      return;
-    }
+    // Parse the stored value
+    try {
+      const data = JSON.parse(stored);
 
-    // Check if remind later timestamp has passed (24 hours)
-    const remindTime = parseInt(stored, 10);
-    if (!isNaN(remindTime)) {
-      const now = Date.now();
-      if (now >= remindTime) {
-        // 24 hours have passed, show again
-        setIsOpen(true);
-      } else {
+      if (data.status === "completed" || data.status === "dismissed") {
         setIsOpen(false);
+        return;
+      }
+
+      if (data.status === "remind_later" && data.timestamp) {
+        // Check if 7 days have passed
+        const daysSince = (Date.now() - data.timestamp) / (1000 * 60 * 60 * 24);
+        if (daysSince < 7) {
+          setIsOpen(false);
+          return;
+        }
+        // 7 days have passed, show again
+        setIsOpen(true);
+        return;
+      }
+    } catch {
+      // Handle legacy string format ("completed", "dismissed", or timestamp number)
+      if (stored === "completed" || stored === "dismissed") {
+        setIsOpen(false);
+        return;
+      }
+
+      // Legacy timestamp format (number as string)
+      const remindTime = parseInt(stored, 10);
+      if (!isNaN(remindTime)) {
+        const now = Date.now();
+        if (now >= remindTime) {
+          setIsOpen(true);
+        } else {
+          setIsOpen(false);
+        }
+        return;
       }
     }
-  }, []);
+
+    // Default: show onboarding
+    setIsOpen(true);
+  }, [tradesCount]);
 
   const handleRemindLater = () => {
-    // Set reminder for 24 hours from now
-    const remindTime = Date.now() + 24 * 60 * 60 * 1000;
-    localStorage.setItem(STORAGE_KEY, String(remindTime));
+    // Set reminder - won't show again for 7 days
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      status: "remind_later",
+      timestamp: Date.now()
+    }));
     setIsOpen(false);
   };
 
   const handleDismiss = () => {
-    localStorage.setItem(STORAGE_KEY, "dismissed");
+    // Permanently dismiss - never show again
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      status: "dismissed",
+      timestamp: Date.now()
+    }));
     setIsOpen(false);
   };
 
   const handleComplete = () => {
-    localStorage.setItem(STORAGE_KEY, "completed");
+    // Mark as completed - never show again
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      status: "completed",
+      timestamp: Date.now()
+    }));
     setIsOpen(false);
   };
 
