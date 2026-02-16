@@ -585,16 +585,42 @@ export default function PnLPage() {
 
   const handleShareTrade = (trade: Trade) => {
     setShareMode("trade");
+
+    // Calculate percentage return on capital deployed
+    const pnl = trade.pnl || 0;
+    const totalValue = trade.total_value || 0;
+    const price = trade.price || 0;
+    const quantity = trade.quantity || 1;
+    const multiplier = trade.asset_type === "stock" ? 1 : 100;
+
+    let capitalDeployed = 0;
+    // Try total_value - pnl first
+    if (totalValue > 0) {
+      const entry = totalValue - pnl;
+      if (entry > 0) capitalDeployed = entry;
+    }
+    // Fallback to price-based calculation
+    if (capitalDeployed === 0 && price > 0) {
+      const exitValue = price * quantity * multiplier;
+      const entry = exitValue - pnl;
+      if (entry > 0) capitalDeployed = entry;
+    }
+
+    const pctReturn = capitalDeployed > 0 ? (pnl / capitalDeployed) * 100 : null;
+
+    // Calculate entry price from capital deployed
+    const entryPrice = capitalDeployed > 0 ? capitalDeployed / quantity / multiplier : null;
+
     setShareTradeData({
       symbol: trade.symbol,
       assetType: trade.asset_type,
-      pnl: trade.pnl || 0,
-      pctReturn: null,
-      entryPrice: null,
-      exitPrice: trade.price || null,
+      pnl,
+      pctReturn,
+      entryPrice,
+      exitPrice: price || null,
       quantity: trade.quantity,
       date: trade.trade_date,
-      price: trade.price || 0,
+      price: price,
       strikePrice: null,
     });
     setShowDayModal(false);
@@ -660,21 +686,22 @@ export default function PnLPage() {
                     onClick={() => setShowImportDropdown(false)}
                     onTouchEnd={() => setShowImportDropdown(false)}
                   />
-                  <div className="absolute left-0 right-0 sm:left-auto sm:right-0 sm:w-52 mt-1 bg-brown-900 border border-brown-700 rounded-lg shadow-2xl z-50 overflow-hidden">
+                  <div className="absolute left-0 mt-1 w-52 max-w-[calc(100vw-2rem)] bg-brown-900 border border-brown-700 rounded-xl shadow-2xl z-50 overflow-hidden">
                     <button
                       type="button"
                       onClick={() => {
                         setShowImportDropdown(false);
                         setShowImportModal(true);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3.5 text-sm text-brown-200 hover:bg-brown-800 active:bg-brown-700 touch-manipulation"
+                      className="w-full flex items-center gap-3 px-4 py-3.5 text-left text-brown-200 hover:bg-brown-800 active:bg-brown-700 touch-manipulation"
                     >
-                      <Upload className="w-4 h-4 text-brown-400" />
-                      Import CSV
+                      <Upload className="w-5 h-5 text-gold-400 flex-shrink-0" />
+                      <span className="text-sm font-medium whitespace-nowrap">Import CSV</span>
                     </button>
-                    <label className="w-full flex items-center gap-3 px-4 py-3.5 text-sm text-brown-200 hover:bg-brown-800 active:bg-brown-700 cursor-pointer touch-manipulation">
-                      <Camera className="w-4 h-4 text-gold-400" />
-                      Upload Screenshot
+                    <div className="border-t border-brown-700" />
+                    <label className="w-full flex items-center gap-3 px-4 py-3.5 text-left text-brown-200 hover:bg-brown-800 active:bg-brown-700 cursor-pointer touch-manipulation">
+                      <Camera className="w-5 h-5 text-gold-400 flex-shrink-0" />
+                      <span className="text-sm font-medium whitespace-nowrap">Upload Screenshot</span>
                       <input type="file" accept="image/*" multiple onChange={handleScreenshotUpload} className="hidden" />
                     </label>
                   </div>

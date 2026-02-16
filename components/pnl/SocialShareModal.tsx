@@ -234,6 +234,31 @@ export default function SocialShareModal({
 
   // ── Draw: Overview / Day mode ──
 
+  // Calculate capital deployed (entry cost) for a trade
+  const calculateCapitalDeployed = useCallback((trade: Trade): number => {
+    const pnl = parsePnL(trade.pnl);
+    const totalValue = trade.total_value || 0;
+    const price = trade.price || 0;
+    const quantity = trade.quantity || 1;
+    const multiplier = trade.asset_type === "stock" ? 1 : 100;
+
+    // Method 1: If we have total_value, derive entry from total_value - pnl
+    if (totalValue > 0) {
+      const entry = totalValue - pnl;
+      if (entry > 0) return entry;
+    }
+
+    // Method 2: If we have price (exit price), calculate exit value then derive entry
+    if (price > 0) {
+      const exitValue = price * quantity * multiplier;
+      const entry = exitValue - pnl;
+      if (entry > 0) return entry;
+    }
+
+    // Can't calculate capital deployed for this trade
+    return 0;
+  }, []);
+
   const getOverviewStats = useCallback(() => {
     const now = new Date();
     let filtered: Trade[];
@@ -278,16 +303,11 @@ export default function SocialShareModal({
     }
 
     const totalPnL = filtered.reduce((s, t) => s + parsePnL(t.pnl), 0);
-    const totalEntryCost = filtered.reduce((sum, t) => {
-      const tv = t.total_value || 0;
-      const p = parsePnL(t.pnl);
-      const entry = tv - p;
-      return entry > 0 ? sum + entry : sum;
-    }, 0);
-    const pctReturn = totalEntryCost > 0 ? (totalPnL / totalEntryCost) * 100 : null;
+    const totalCapitalDeployed = filtered.reduce((sum, t) => sum + calculateCapitalDeployed(t), 0);
+    const pctReturn = totalCapitalDeployed > 0 ? (totalPnL / totalCapitalDeployed) * 100 : null;
 
     return { totalPnL, pctReturn, periodLabel, dateText };
-  }, [trades, period, weekData]);
+  }, [trades, period, weekData, calculateCapitalDeployed]);
 
   const drawOverviewCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -310,13 +330,8 @@ export default function SocialShareModal({
       periodLabel = "DAILY PERFORMANCE";
       const d = parseLocalDate(dayData.date);
       dateText = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-      const totalEntry = dayData.trades.reduce((sum, t) => {
-        const tv = t.total_value || 0;
-        const p = parsePnL(t.pnl);
-        const entry = tv - p;
-        return entry > 0 ? sum + entry : sum;
-      }, 0);
-      pctReturn = totalEntry > 0 ? (pnlValue / totalEntry) * 100 : null;
+      const totalCapital = dayData.trades.reduce((sum, t) => sum + calculateCapitalDeployed(t), 0);
+      pctReturn = totalCapital > 0 ? (pnlValue / totalCapital) * 100 : null;
     } else {
       const stats = getOverviewStats();
       pnlValue = stats.totalPnL;
@@ -359,7 +374,7 @@ export default function SocialShareModal({
     }
 
     drawLogoAndFinalize(ctx, canvas, W, H, H * 0.52);
-  }, [mode, dayData, getOverviewStats]);
+  }, [mode, dayData, getOverviewStats, calculateCapitalDeployed]);
 
   // ── Draw: Trade mode ──
 
