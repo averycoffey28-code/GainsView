@@ -25,6 +25,7 @@ import {
   AlertCircle,
   List,
   BarChart3,
+  HelpCircle,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,7 @@ import ImportTradesModal from "@/components/ImportTradesModal";
 import DayOfWeekHeatmap from "@/components/pnl/DayOfWeekHeatmap";
 import TickerLeaderboard from "@/components/pnl/TickerLeaderboard";
 import SocialShareModal, { DayShareData, TradeShareData } from "@/components/pnl/SocialShareModal";
-import PnLOnboarding from "@/components/pnl/PnLOnboarding";
+import PnLTutorial from "@/components/pnl/PnLTutorial";
 import BatchScreenshotUpload from "@/components/pnl/BatchScreenshotUpload";
 import { useTrades, Trade } from "@/hooks/useUserData";
 import { useTimezone } from "@/contexts/TimezoneContext";
@@ -116,6 +117,7 @@ export default function PnLPage() {
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [batchInitialFiles, setBatchInitialFiles] = useState<File[]>([]);
   const [showImportDropdown, setShowImportDropdown] = useState(false);
+  const [showTutorialFromHelp, setShowTutorialFromHelp] = useState(false);
 
   // Selected data
   const [selectedDay, setSelectedDay] = useState<DayData | null>(null);
@@ -737,6 +739,15 @@ export default function PnLPage() {
               <Plus className="w-4 h-4 mr-1.5" />
               Log Trade
             </Button>
+            {/* Help Button */}
+            <button
+              type="button"
+              onClick={() => setShowTutorialFromHelp(true)}
+              className="w-8 h-8 rounded-full border border-brown-700 flex items-center justify-center text-brown-400 hover:text-gold-400 hover:border-gold-400 transition-colors flex-shrink-0"
+              title="How to log trades"
+            >
+              <HelpCircle className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
@@ -1789,12 +1800,15 @@ export default function PnLPage() {
           className="hidden"
         />
 
-        {/* First-time user onboarding */}
+        {/* First-time user tutorial */}
         {!loading && (
-          <PnLOnboarding
+          <PnLTutorial
             tradesCount={trades.length}
             onOpenImportModal={() => setShowImportModal(true)}
             onOpenScreenshotUpload={() => screenshotInputRef.current?.click()}
+            onOpenLogTrade={() => setShowAddModal(true)}
+            forceOpen={showTutorialFromHelp}
+            onForceClose={() => setShowTutorialFromHelp(false)}
           />
         )}
       </div>
