@@ -95,28 +95,39 @@ const MARKET_INDICES = [
 export default function MarketsPage() {
   const router = useRouter();
   const { watchlist, addToWatchlist, removeFromWatchlist, loading: watchlistLoading } = useWatchlist();
-  const { settings, updateSettings } = useUserSettings();
+  const { settings, loading: settingsLoading, updateSettings } = useUserSettings();
 
   // Disclaimer state
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
+  const [disclaimerCheckDone, setDisclaimerCheckDone] = useState(false);
 
   useEffect(() => {
+    // Only run once after settings have loaded
+    if (disclaimerCheckDone) return;
+
+    // Check localStorage first (instant)
     const localAcknowledged = localStorage.getItem("gainsview-market-disclaimer");
     if (localAcknowledged === "true") {
       setDisclaimerChecked(true);
+      setDisclaimerCheckDone(true);
       return;
     }
+
+    // Check settings from database
     if (settings?.market_disclaimer_acknowledged) {
       localStorage.setItem("gainsview-market-disclaimer", "true");
       setDisclaimerChecked(true);
+      setDisclaimerCheckDone(true);
       return;
     }
-    // Only show once settings have loaded (avoid flash)
-    if (settings !== null && settings !== undefined) {
+
+    // Once settings have finished loading (even if null for new users), show disclaimer
+    if (!settingsLoading) {
       setShowDisclaimer(true);
+      setDisclaimerCheckDone(true);
     }
-  }, [settings]);
+  }, [settings, settingsLoading, disclaimerCheckDone]);
 
   const handleAcknowledge = async () => {
     localStorage.setItem("gainsview-market-disclaimer", "true");
