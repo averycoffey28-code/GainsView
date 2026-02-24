@@ -385,3 +385,20 @@ body {
     transform: scale(0.98);
   }
 }
+
+/* P&L Calendar - Diagonal slash for past weekdays with no trades */
+.no-trade-day::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom left,
+    transparent calc(50% - 1px),
+    rgba(107, 95, 85, 0.4) calc(50% - 1px),
+    rgba(107, 95, 85, 0.4) calc(50% + 1px),
+    transparent calc(50% + 1px)
+  );
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 10;
+}

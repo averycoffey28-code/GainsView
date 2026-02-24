@@ -896,6 +896,18 @@ export default function PnLPage() {
                       // Saturday cell shows weekly summary if week has trades
                       const showWeeklySummary = isSaturday && week.tradeCount > 0;
 
+                      // Determine if this is a past weekday with no trades (show diagonal slash)
+                      const isNoTradeWeekday = (() => {
+                        if (!day.isCurrentMonth || hasTrades || day.isToday) return false;
+                        const date = parseLocalDate(day.date);
+                        const dayOfWeek = date.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+                        const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+                        const todayDate = new Date();
+                        todayDate.setHours(0, 0, 0, 0);
+                        const isPast = date < todayDate;
+                        return isWeekday && isPast;
+                      })();
+
                       // Previous/next month overflow days - muted warm brown text only
                       if (!day.isCurrentMonth) {
                         return (
@@ -955,9 +967,25 @@ export default function PnLPage() {
                             !hasTrades && "bg-transparent hover:bg-brown-800/20"
                           )}
                         >
+                          {/* Diagonal slash for past weekdays with no trades */}
+                          {isNoTradeWeekday && (
+                            <svg
+                              className="absolute inset-0 w-full h-full pointer-events-none"
+                              preserveAspectRatio="none"
+                            >
+                              <line
+                                x1="100%"
+                                y1="0"
+                                x2="0"
+                                y2="100%"
+                                stroke="rgba(107, 95, 85, 0.35)"
+                                strokeWidth="1.5"
+                              />
+                            </svg>
+                          )}
                           {/* Date number */}
                           <span className={cn(
-                            "text-[10px] sm:text-xs md:text-sm",
+                            "text-[10px] sm:text-xs md:text-sm relative z-10",
                             hasTrades ? "text-white" : "text-brown-400"
                           )}>
                             {parseLocalDate(day.date).getDate()}

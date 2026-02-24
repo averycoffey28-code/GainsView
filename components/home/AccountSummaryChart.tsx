@@ -166,7 +166,7 @@ export default function AccountSummaryChart({ trades, period }: AccountSummaryCh
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} style={{ userSelect: "none", cursor: "crosshair" }}>
+      <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 5, bottom: 0 }} style={{ userSelect: "none", cursor: "crosshair" }}>
         <defs>
           <linearGradient id="colorPnlPositive" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor={isDark ? "#34D399" : "#16A34A"} stopOpacity={0.3} />
@@ -195,8 +195,16 @@ export default function AccountSummaryChart({ trades, period }: AccountSummaryCh
         <YAxis
           axisLine={false}
           tickLine={false}
+          width={50}
           tick={{ fill: tickColor, fontSize: 10 }}
-          tickFormatter={(value) => `$${value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value}`}
+          tickFormatter={(value) => {
+            const abs = Math.abs(value);
+            const sign = value < 0 ? "-" : "";
+            if (abs >= 1000) {
+              return `${sign}$${(abs / 1000).toFixed(1)}k`;
+            }
+            return `${sign}$${abs}`;
+          }}
         />
         <Tooltip
           cursor={{ stroke: cursorColor, strokeWidth: 1 }}
